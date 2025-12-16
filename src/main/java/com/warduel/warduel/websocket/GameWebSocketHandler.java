@@ -130,13 +130,16 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             player.incrementScore();
         }
 
-        log.info("Player {} answered {}. Correct: {} (Score: {}/20)",
-                playerId, answerMsg.getAnswer(), correct, player.getScore());
-
         // Sende Score Update an beide Spieler
         sendScoreUpdate(player, opponent, correct);
         if(opponent != null) {
             sendScoreUpdate(opponent, player, false);
+        }
+
+        if(player.getScore() >= 20) {
+            log.info("Player {} reached 20 points! Ending game immediately", playerId);
+            endGame(game);
+            return;  // Wichtig: Keine weitere Frage senden!
         }
 
         // Nächste Frage
@@ -267,7 +270,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         );
 
         sendMessage(player.getSession(), msg);
-        log.info("Sent question {} to {}: {}", questionNumber, player.getDisplayName(), question.getQuestionText());
     }
 
     /**
