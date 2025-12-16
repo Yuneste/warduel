@@ -92,7 +92,18 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      */
     private void handleAnswer(WebSocketSession session, @SuppressWarnings("unused") String payload) throws IOException {
         String playerId = session.getId();
-        AnswerMessage answerMsg = objectMapper.readValue(payload, AnswerMessage.class);
+
+        log.info("📨 RAW ANSWER PAYLOAD: {}", payload);  // DEBUG
+
+        AnswerMessage answerMsg;
+        try {
+            answerMsg = objectMapper.readValue(payload, AnswerMessage.class);
+            log.info("✅ Parsed answer: {}", answerMsg.getAnswer());  // DEBUG
+        } catch (Exception e) {
+            log.error("❌ Failed to parse answer message: {}", e.getMessage());
+            sendError(session, "Ungültiges Nachrichtenformat");
+            return;
+        }
 
         GameSession game = gameService.getGameByPlayerId(playerId);
         if(game == null || game.getStatus() != GameSession.GameStatus.RUNNING) {
