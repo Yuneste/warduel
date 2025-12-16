@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WarDuel - Math Quiz Game</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container">
+    <h1 class="game-title">⚔️ WarDuel</h1>
+
+    <!-- Status Text -->
+    <div id="status-text" class="status-text">Verbinde mit Server...</div>
+
+    <!-- Waiting Area -->
+    <div id="waiting-area" style="display: block;">
+        <p>Warte auf Gegner...</p>
+    </div>
+
+    <!-- Game Area -->
+    <div id="game-area" style="display: none;">
+        <!-- Score Container -->
+        <div class="score-container">
+            <div class="score-box">
+                <div class="score-label">Du</div>
+                <div class="score-value" id="your-score">0</div>
+            </div>
+            <div class="score-box">
+                <div class="score-label">Gegner</div>
+                <div class="score-value" id="opponent-score">0</div>
+            </div>
+        </div>
+
+        <!-- Timer -->
+        <div class="timer-box">
+            <div class="timer-label">Zeit</div>
+            <div class="timer-value" id="timer">60</div>
+        </div>
+
+        <!-- Question -->
+        <div class="question-box">
+            <div id="question-number" class="question-number">Frage 1/20</div>
+            <div id="question-text" class="question-text">Warte auf Frage...</div>
+        </div>
+
+        <!-- Answer Display -->
+        <div id="answer-display" class="answer-display">—</div>
+
+        <!-- Number Pad -->
+        <div class="number-pad">
+            <button class="number-btn" data-num="7">7</button>
+            <button class="number-btn" data-num="8">8</button>
+            <button class="number-btn" data-num="9">9</button>
+
+            <button class="number-btn" data-num="4">4</button>
+            <button class="number-btn" data-num="5">5</button>
+            <button class="number-btn" data-num="6">6</button>
+
+            <button class="number-btn" data-num="1">1</button>
+            <button class="number-btn" data-num="2">2</button>
+            <button class="number-btn" data-num="3">3</button>
+
+            <button class="number-btn" data-num="C">C</button>
+            <button class="number-btn" data-num="0">0</button>
+            <button class="number-btn" data-num="−">−</button>
+
+            <button class="number-btn submit-btn" data-num="✓">✓</button>
+        </div>
+
+        <!-- Feedback -->
+        <div id="feedback-area" class="feedback" style="display: none;"></div>
+    </div>
+
+    <!-- Result Area -->
+    <div id="result-area" style="display: none;">
+        <h2 id="result-message" class="result-message"></h2>
+
+        <div class="score-display">
+            <div class="score-item">
+                <div class="score-label">Dein Score</div>
+                <div class="score-value" id="your-final-score">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">Gegner Score</div>
+                <div class="score-value" id="opponent-final-score">0</div>
+            </div>
+        </div>
+
+        <button id="rematch-button" class="btn-primary" onclick="requestRematch()">
+            Rematch
+        </button>
+
+        <div id="rematch-status" style="display: none; margin-top: 20px; text-align: center;"></div>
+
+        <button class="btn-secondary" onclick="location.reload()" style="margin-top: 20px;">
+            Neues Spiel
+        </button>
+    </div>
+</div>
+
+<script src="/js/game.js"></script>
+</body>
+</html>
