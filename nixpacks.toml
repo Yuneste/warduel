@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["...", "jdk17"]
+nixPkgs = ["jdk17"]
 
 [phases.build]
-cmds = ["mvn clean install -DskipTests"]
+cmds = ["./mvnw clean package -DskipTests"]
 
 [start]
-cmd = "java -Dserver.port=$PORT -jar target/warduel-0.0.1-SNAPSHOT.jar"
+cmd = "java -Dserver.port=$PORT -jar target/*.jar"
