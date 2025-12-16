@@ -86,14 +86,21 @@ public class GameService {
      * Bereitet Spiel vor und startet es
      */
     private void prepareGame(GameSession game) {
-        // Generiere Fragen
-        List<Question> questions = questionGenerator.generateQuestions(QUESTIONS_PER_GAME);
-        game.setQuestions(questions);
+        // Generiere ZWEI verschiedene Fragenlisten
+        List<Question> questionsP1 = questionGenerator.generateQuestions(QUESTIONS_PER_GAME);
+        List<Question> questionsP2 = questionGenerator.generateQuestions(QUESTIONS_PER_GAME);
 
-        // Starte das Spiel
+        // Gib jedem Spieler seine eigenen Fragen
+        game.getPlayer1().setQuestions(questionsP1);
+        game.getPlayer2().setQuestions(questionsP2);
+
+        // Game-Liste = Player 1 Fragen (für Kompatibilität)
+        game.setQuestions(questionsP1);
+
         game.startGame();
 
-        log.info("Game {} started with {} questions", game.getGameId(), questions.size());
+        log.info("Game {} started - P1: {} questions, P2: {} questions",
+                game.getGameId(), questionsP1.size(), questionsP2.size());
     }
 
     /**

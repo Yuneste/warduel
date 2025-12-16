@@ -164,12 +164,7 @@ public class GameSession {
      */
     public Question getCurrentQuestionForPlayer(Player player) {
         if(player == null) return null;
-
-        int index = player.getCurrentQuestionIndex();
-        if(index < questions.size()) {
-            return questions.get(index);
-        }
-        return null;
+        return player.getCurrentQuestion();  // ← Nutze Player's eigene Liste!
     }
 
     /**
