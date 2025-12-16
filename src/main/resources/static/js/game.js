@@ -406,6 +406,40 @@ function hideElement(el) {
     if(el) el.style.display = 'none';
 }
 
+function handleMessage(event) {
+    try {
+        const message = JSON.parse(event.data);
+        console.log('🔵 Received:', message.type, message);  // MEHR DETAILS
+
+        switch(message.type) {
+            case 'GAME_STATE':
+                handleGameState(message);
+                break;
+            case 'QUESTION':
+                console.log('📝 QUESTION received:', message);  // DEBUG
+                handleQuestion(message);
+                break;
+            case 'SCORE_UPDATE':
+                console.log('🎯 SCORE_UPDATE received:', message);  // DEBUG
+                handleScoreUpdate(message);
+                break;
+            case 'GAME_OVER':
+                handleGameOver(message);
+                break;
+            case 'REMATCH':
+                handleRematch(message);
+                break;
+            case 'ERROR':
+                handleErrorMessage(message);
+                break;
+            default:
+                console.warn('Unknown message type:', message.type);
+        }
+    } catch (error) {
+        console.error('Error parsing message:', error);
+    }
+}
+
 // ==================== CLEANUP ====================
 
 window.addEventListener('beforeunload', () => {
