@@ -188,10 +188,31 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             // Entferne Spieler
             gameService.removePlayer(playerId);
 
+            // WICHTIG: Beende das Spiel sofort
+            if(game.getStatus() == GameSession.GameStatus.RUNNING) {
+                try {
+                    game.endGame();
+                    log.info("Game {} ended because player {} disconnected", game.getGameId(), playerId);
+                } catch (Exception e) {
+                    log.error("Error ending game", e);
+                }
+            }
+
             // Informiere Gegner
             if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
                 try {
-                    sendError(opponent.getSession(), "Gegner hat die Verbindung getrennt");
+                    // Sende Game Over an Gegner
+                    GameOverMessage msg = new GameOverMessage(
+                            opponent.getScore(),
+                            0,  // Disconnected player gets 0
+                            true,  // Opponent wins
+                            false,  // Not a draw
+                            opponent.getDisplayName()
+                    );
+                    sendMessage(opponent.getSession(), msg);
+
+                    // Schließe auch die Gegner-Session
+                    opponent.getSession().close(CloseStatus.NORMAL);
                 } catch (IOException e) {
                     log.error("Error notifying opponent", e);
                 }
