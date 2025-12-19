@@ -98,7 +98,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-Project Link: [https://github.com/IHR_USERNAME/warduel](https://github.com/IHR_USERNAME/warduel)
+Project Link: [https://github.com/IHR_USERNAME/warduel](https://github.com/yuneste/warduel)
 
 ---
 
