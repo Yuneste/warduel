@@ -27,6 +27,7 @@ const elements = {
     statusText: document.getElementById('status-text'),
 
     // Bereiche
+    lobbyArea: document.getElementById('lobby-area'),
     waitingArea: document.getElementById('waiting-area'),
     gameArea: document.getElementById('game-area'),
     resultArea: document.getElementById('result-area'),
@@ -56,9 +57,24 @@ const elements = {
 
 window.addEventListener('DOMContentLoaded', () => {
     console.log('WarDuel starting...');
-    connectToServer();
     setupNumberPad();
+    setupPlayButton();
 });
+
+function setupPlayButton() {
+    const playButton = document.getElementById('play-button');
+    if (playButton) {
+        playButton.addEventListener('click', () => {
+            console.log('Play button clicked');
+            // Hide lobby, show status and waiting area
+            hideElement(elements.lobbyArea);
+            showElement(elements.statusText);
+            showElement(elements.waitingArea);
+            // Connect to server and join matchmaking
+            connectToServer();
+        });
+    }
+}
 
 // ==================== WEBSOCKET VERBINDUNG ====================
 
@@ -86,6 +102,9 @@ function handleConnectionOpen() {
     console.log('WebSocket connected');
     isConnected = true;
     updateStatus('Suche nach Gegner...');
+    // Make sure waiting area is visible and lobby is hidden
+    hideElement(elements.lobbyArea);
+    showElement(elements.waitingArea);
 }
 
 function handleMessage(event) {
