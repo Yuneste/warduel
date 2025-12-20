@@ -65,6 +65,7 @@ window.addEventListener('DOMContentLoaded', () => {
 function setupPlayButton() {
     const playButton = document.getElementById('play-button');
     if (playButton) {
+        addHapticFeedback(playButton);
         playButton.addEventListener('click', () => {
             console.log('Play button clicked');
             // Hide lobby, show status and waiting area
@@ -81,6 +82,7 @@ function setupLeaveButtons() {
     // Leave button in waiting area
     const leaveWaitingButton = document.getElementById('leave-waiting-button');
     if (leaveWaitingButton) {
+        addHapticFeedback(leaveWaitingButton);
         leaveWaitingButton.addEventListener('click', () => {
             console.log('Leave waiting button clicked');
             leaveGame();
@@ -90,11 +92,20 @@ function setupLeaveButtons() {
     // Forfeit button in game area
     const forfeitButton = document.getElementById('forfeit-button');
     if (forfeitButton) {
+        addHapticFeedback(forfeitButton);
         forfeitButton.addEventListener('click', () => {
             console.log('Forfeit button clicked');
             leaveGame();
         });
     }
+}
+
+function addHapticFeedback(element) {
+    element.addEventListener('touchstart', () => {
+        if ('vibrate' in navigator) {
+            navigator.vibrate(10);
+        }
+    }, { passive: true });
 }
 
 function leaveGame() {
@@ -356,6 +367,13 @@ function setupNumberPad() {
     const buttons = document.querySelectorAll('.number-btn');
 
     buttons.forEach(btn => {
+        // Add haptic feedback on touch
+        btn.addEventListener('touchstart', () => {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(10);
+            }
+        }, { passive: true });
+
         btn.addEventListener('click', () => {
             const num = btn.dataset.num;
 
