@@ -266,7 +266,7 @@ body {
         max-width: 900px;
     }
 
-    #game-area {
+    #game-area[style*="display: block"] {
         display: grid !important;
         grid-template-columns: 1fr 1.5fr;
         gap: 20px;
