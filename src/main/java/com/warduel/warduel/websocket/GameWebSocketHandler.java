@@ -244,9 +244,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         // Kurze Pause damit Clients bereit sind
         Thread.sleep(200);
 
-        // Sende erste Frage an beide Spieler
-        sendNextQuestion(player1, game);
-        sendNextQuestion(player2, game);
+        // Calculate remaining seconds ONCE for both players
+        long remainingSeconds = game.getRemainingSeconds();
+
+        // Sende erste Frage an beide Spieler mit gleicher Zeit
+        sendNextQuestion(player1, game, remainingSeconds);
+        sendNextQuestion(player2, game, remainingSeconds);
 
         // Starte Timer
         startGameTimer(game);
@@ -256,6 +259,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      * Sendet nächste Frage an Spieler
      */
     private void sendNextQuestion(Player player, GameSession game) throws IOException {
+        sendNextQuestion(player, game, game.getRemainingSeconds());
+    }
+
+    /**
+     * Sendet nächste Frage an Spieler mit spezifischer verbleibender Zeit
+     */
+    private void sendNextQuestion(Player player, GameSession game, long remainingSeconds) throws IOException {
         if(player == null || player.getSession() == null || !player.getSession().isOpen()) {
             log.warn("Cannot send question - player session is null or closed");
             return;
@@ -267,7 +277,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        long remainingSeconds = game.getRemainingSeconds();
         int questionNumber = player.getCurrentQuestionIndex() + 1;
 
         QuestionMessage msg = new QuestionMessage(
