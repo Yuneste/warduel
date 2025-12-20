@@ -58,61 +58,67 @@
 
     <!-- Game Area -->
     <div id="game-area" style="display: none;">
-        <!-- Score Container -->
-        <div class="score-container">
-            <div class="score-box">
-                <div class="score-label">Du</div>
-                <div class="score-value" id="your-score">0</div>
+        <!-- Left Column: Scores, Timer, Forfeit -->
+        <div class="game-left-column">
+            <!-- Score Container -->
+            <div class="score-container">
+                <div class="score-box">
+                    <div class="score-label">Du</div>
+                    <div class="score-value" id="your-score">0</div>
+                </div>
+                <div class="score-box">
+                    <div class="score-label">Gegner</div>
+                    <div class="score-value" id="opponent-score">0</div>
+                </div>
             </div>
-            <div class="score-box">
-                <div class="score-label">Gegner</div>
-                <div class="score-value" id="opponent-score">0</div>
+
+            <!-- Timer -->
+            <div class="timer-box">
+                <div class="timer-label">Zeit</div>
+                <div class="timer-value" id="timer">60</div>
             </div>
+
+            <!-- Forfeit Button -->
+            <button id="forfeit-button" class="btn-danger" style="font-size: 14px; padding: 8px 16px;">
+                Aufgeben
+            </button>
         </div>
 
-        <!-- Timer -->
-        <div class="timer-box">
-            <div class="timer-label">Zeit</div>
-            <div class="timer-value" id="timer">60</div>
+        <!-- Right Column: Question, Answer, Numpad -->
+        <div class="game-right-column">
+            <!-- Question -->
+            <div class="question-box">
+                <div id="question-number" class="question-number">Frage 1/20</div>
+                <div id="question-text" class="question-text">Warte auf Frage...</div>
+            </div>
+
+            <!-- Answer Display -->
+            <div id="answer-display" class="answer-display">—</div>
+
+            <!-- Number Pad -->
+            <div class="number-pad">
+                <button class="number-btn" data-num="7">7</button>
+                <button class="number-btn" data-num="8">8</button>
+                <button class="number-btn" data-num="9">9</button>
+
+                <button class="number-btn" data-num="4">4</button>
+                <button class="number-btn" data-num="5">5</button>
+                <button class="number-btn" data-num="6">6</button>
+
+                <button class="number-btn" data-num="1">1</button>
+                <button class="number-btn" data-num="2">2</button>
+                <button class="number-btn" data-num="3">3</button>
+
+                <button class="number-btn clear-btn" data-num="C">&lt;</button>
+                <button class="number-btn" data-num="0">0</button>
+                <button class="number-btn" data-num="−">−</button>
+
+                <button class="number-btn submit-btn" data-num="✓">✓</button>
+            </div>
+
+            <!-- Feedback -->
+            <div id="feedback-area" class="feedback" style="display: none;"></div>
         </div>
-
-        <!-- Forfeit Button -->
-        <button id="forfeit-button" class="btn-danger" style="margin-bottom: 20px; font-size: 14px; padding: 8px 16px;">
-            Aufgeben
-        </button>
-
-        <!-- Question -->
-        <div class="question-box">
-            <div id="question-number" class="question-number">Frage 1/20</div>
-            <div id="question-text" class="question-text">Warte auf Frage...</div>
-        </div>
-
-        <!-- Answer Display -->
-        <div id="answer-display" class="answer-display">—</div>
-
-        <!-- Number Pad -->
-        <div class="number-pad">
-            <button class="number-btn" data-num="7">7</button>
-            <button class="number-btn" data-num="8">8</button>
-            <button class="number-btn" data-num="9">9</button>
-
-            <button class="number-btn" data-num="4">4</button>
-            <button class="number-btn" data-num="5">5</button>
-            <button class="number-btn" data-num="6">6</button>
-
-            <button class="number-btn" data-num="1">1</button>
-            <button class="number-btn" data-num="2">2</button>
-            <button class="number-btn" data-num="3">3</button>
-
-            <button class="number-btn clear-btn" data-num="C">&lt;</button>
-            <button class="number-btn" data-num="0">0</button>
-            <button class="number-btn" data-num="−">−</button>
-
-            <button class="number-btn submit-btn" data-num="✓">✓</button>
-        </div>
-
-        <!-- Feedback -->
-        <div id="feedback-area" class="feedback" style="display: none;"></div>
     </div>
 
     <!-- Result Area -->

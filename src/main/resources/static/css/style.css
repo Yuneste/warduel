@@ -252,6 +252,28 @@ body {
     font-weight: 700;
 }
 
+/* Game Area Grid Layout (Desktop) */
+@media (min-width: 768px) {
+    #game-area {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 20px;
+        align-items: start;
+    }
+
+    .game-left-column {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .game-right-column {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+}
+
 /* Score Container */
 .score-container {
     display: flex;
@@ -636,62 +658,131 @@ body {
     color: #ef4444;
 }
 
-/* Mobile */
-@media (max-width: 600px) {
+/* Mobile - Compact Layout */
+@media (max-width: 767px) {
     .container {
-        padding: 20px;
+        padding: 15px;
     }
 
     .game-title {
-        font-size: 2rem;
-        margin-bottom: 25px;
+        font-size: 1.5rem;
+        margin-bottom: 15px;
     }
 
     .lobby-hero {
-        padding: 40px 20px 50px 20px;
-        margin: -20px -20px 20px -20px;
+        padding: 30px 15px 35px 15px;
+        margin: -15px -15px 15px -15px;
     }
 
     .lobby-title {
-        font-size: 2.5rem;
-        letter-spacing: 2px;
+        font-size: 2rem;
+        letter-spacing: 1px;
     }
 
     .lobby-subtitle {
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
 
     .math-symbol {
-        font-size: 1.5rem !important;
+        font-size: 1.2rem !important;
     }
 
-    .math-symbol:nth-child(2) { font-size: 1.8rem !important; }
-    .math-symbol:nth-child(5) { font-size: 1.6rem !important; }
+    .math-symbol:nth-child(2) { font-size: 1.4rem !important; }
+    .math-symbol:nth-child(5) { font-size: 1.3rem !important; }
 
     .lobby-features {
-        gap: 10px;
+        gap: 8px;
     }
 
     .lobby-feature {
-        min-width: 120px;
-        padding: 15px 10px;
+        min-width: 100px;
+        padding: 12px 8px;
     }
 
     .lobby-feature-value {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
     }
 
     .lobby-play-button {
-        font-size: 1.2rem;
-        padding: 18px;
+        font-size: 1.1rem;
+        padding: 15px;
     }
 
-    .question-text {
+    /* Game Area - Compact */
+    .score-container {
+        margin-bottom: 10px;
+        gap: 8px;
+    }
+
+    .score-box {
+        padding: 10px;
+    }
+
+    .score-label {
+        font-size: 0.75rem;
+    }
+
+    .score-value {
+        font-size: 1.5rem;
+    }
+
+    .timer-box {
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    .timer-label {
+        font-size: 0.75rem;
+    }
+
+    .timer-value {
         font-size: 2rem;
     }
 
-    .number-btn {
+    #forfeit-button {
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+        margin-bottom: 10px;
+    }
+
+    .question-box {
         padding: 15px;
-        font-size: 1.3rem;
+        margin-bottom: 10px;
+    }
+
+    .question-number {
+        font-size: 0.75rem;
+        margin-bottom: 5px;
+    }
+
+    .question-text {
+        font-size: 1.8rem;
+    }
+
+    .answer-display {
+        padding: 12px;
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        min-height: 50px;
+    }
+
+    .number-pad {
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+
+    .number-btn {
+        padding: 12px;
+        font-size: 1.2rem;
+    }
+
+    .number-btn.submit-btn {
+        font-size: 1.5rem;
+    }
+
+    .feedback {
+        padding: 10px;
+        font-size: 0.9rem;
+        margin-top: 10px;
     }
 }
