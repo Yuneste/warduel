@@ -252,10 +252,22 @@ body {
     font-weight: 700;
 }
 
+/* Hide title and status during gameplay and results */
+.container:has(#game-area[style*="display: block"]) .game-title,
+.container:has(#game-area[style*="display: block"]) #status-text,
+.container:has(#result-area[style*="display: block"]) .game-title,
+.container:has(#result-area[style*="display: block"]) #status-text {
+    display: none !important;
+}
+
 /* Game Area Grid Layout (Desktop) */
 @media (min-width: 768px) {
+    .container {
+        max-width: 900px;
+    }
+
     #game-area {
-        display: grid;
+        display: grid !important;
         grid-template-columns: 1fr 1.5fr;
         gap: 20px;
         align-items: start;
