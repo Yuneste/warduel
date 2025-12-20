@@ -268,6 +268,23 @@ function handleScoreUpdate(message) {
     elements.yourScoreSpan.textContent = message.yourScore.toString();
     elements.opponentScoreSpan.textContent = message.opponentScore.toString();
 
+    // Trigger answer display animation
+    if(message.correct !== undefined && message.correct !== null) {
+        const answerDisplay = elements.answerDisplay;
+        answerDisplay.classList.remove('blink-red', 'blink-green');
+
+        if(message.correct) {
+            answerDisplay.classList.add('blink-green');
+        } else {
+            answerDisplay.classList.add('blink-red');
+        }
+
+        // Remove class after animation
+        setTimeout(() => {
+            answerDisplay.classList.remove('blink-red', 'blink-green');
+        }, 600);
+    }
+
     // Show Feedback
     if(message.correct !== undefined && message.correct !== null) {
         showFeedback(message.correct ? '✓ Richtig!' : '✗ Falsch!', message.correct);
@@ -348,6 +365,13 @@ function startTimer() {
         const remaining = Math.max(0, Math.floor((gameEndTime - Date.now()) / 1000));
         elements.timer.textContent = remaining.toString();
 
+        // Add breathing effect when 5 seconds or less
+        if(remaining <= 5 && remaining > 0) {
+            elements.timer.classList.add('breathing');
+        } else {
+            elements.timer.classList.remove('breathing');
+        }
+
         if(remaining === 0) {
             stopTimer();
         }
@@ -358,6 +382,10 @@ function stopTimer() {
     if(timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
+    }
+    // Remove breathing effect
+    if(elements.timer) {
+        elements.timer.classList.remove('breathing');
     }
 }
 
