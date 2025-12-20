@@ -285,10 +285,7 @@ function handleScoreUpdate(message) {
         }, 600);
     }
 
-    // Show Feedback (only if we just submitted an answer)
-    if(message.wasCorrect !== undefined && message.wasCorrect !== null && currentAnswer !== '') {
-        showFeedback(message.wasCorrect ? 'Richtig!' : 'Falsch!', message.wasCorrect);
-    }
+    // Feedback removed - using blink animations instead
 }
 
 /**
