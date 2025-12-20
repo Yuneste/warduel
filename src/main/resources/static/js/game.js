@@ -287,7 +287,7 @@ function handleScoreUpdate(message) {
 
     // Show Feedback
     if(message.wasCorrect !== undefined && message.wasCorrect !== null) {
-        showFeedback(message.wasCorrect ? '✓ Richtig!' : '✗ Falsch!', message.wasCorrect);
+        showFeedback(message.wasCorrect ? 'Richtig!' : 'Falsch!', message.wasCorrect);
     }
 }
 
@@ -315,13 +315,13 @@ function handleGameOver(message) {
 
     // Result Message
     if(message.draw) {
-        elements.resultMessage.textContent = 'Unentschieden!';
+        elements.resultMessage.textContent = 'Unentschieden';
         elements.resultMessage.className = 'result-message draw';
     } else if(message.youWon) {
-        elements.resultMessage.textContent = 'Du hast gewonnen! 🎉';
+        elements.resultMessage.textContent = 'Sieg!';
         elements.resultMessage.className = 'result-message win';
     } else {
-        elements.resultMessage.textContent = 'Du hast verloren! 😢';
+        elements.resultMessage.textContent = 'Niederlage';
         elements.resultMessage.className = 'result-message lose';
     }
 

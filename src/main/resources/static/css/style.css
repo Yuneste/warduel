@@ -50,6 +50,7 @@ body {
 #lobby-area {
     text-align: center;
     padding: 0;
+    animation: fadeIn 0.5s ease-out;
 }
 
 .lobby-hero {
@@ -239,6 +240,7 @@ body {
 #waiting-area {
     text-align: center;
     padding: 40px 20px;
+    animation: fadeIn 0.5s ease-out;
 }
 
 #waiting-area p {
@@ -318,6 +320,7 @@ body {
     margin-bottom: 20px;
     border: 3px solid #f0fdf4;
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.1);
+    animation: scaleIn 0.3s ease-out;
 }
 
 .question-number {
@@ -420,6 +423,7 @@ body {
     font-weight: 700;
     margin-top: 15px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    animation: slideDown 0.3s ease-out;
 }
 
 .feedback.correct {
@@ -435,6 +439,45 @@ body {
 /* Result */
 #result-area {
     text-align: center;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .result-message {
