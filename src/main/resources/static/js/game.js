@@ -268,8 +268,8 @@ function handleScoreUpdate(message) {
     elements.yourScoreSpan.textContent = message.yourScore.toString();
     elements.opponentScoreSpan.textContent = message.opponentScore.toString();
 
-    // Trigger answer display animation
-    if(message.wasCorrect !== undefined && message.wasCorrect !== null) {
+    // Trigger answer display animation (only if we just submitted an answer)
+    if(message.wasCorrect !== undefined && message.wasCorrect !== null && currentAnswer !== '') {
         const answerDisplay = elements.answerDisplay;
         answerDisplay.classList.remove('blink-red', 'blink-green');
 
@@ -285,8 +285,8 @@ function handleScoreUpdate(message) {
         }, 600);
     }
 
-    // Show Feedback
-    if(message.wasCorrect !== undefined && message.wasCorrect !== null) {
+    // Show Feedback (only if we just submitted an answer)
+    if(message.wasCorrect !== undefined && message.wasCorrect !== null && currentAnswer !== '') {
         showFeedback(message.wasCorrect ? 'Richtig!' : 'Falsch!', message.wasCorrect);
     }
 }
