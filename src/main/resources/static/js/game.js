@@ -59,6 +59,7 @@ window.addEventListener('DOMContentLoaded', () => {
     console.log('WarDuel starting...');
     setupNumberPad();
     setupPlayButton();
+    setupLeaveButtons();
 });
 
 function setupPlayButton() {
@@ -74,6 +75,57 @@ function setupPlayButton() {
             connectToServer();
         });
     }
+}
+
+function setupLeaveButtons() {
+    // Leave button in waiting area
+    const leaveWaitingButton = document.getElementById('leave-waiting-button');
+    if (leaveWaitingButton) {
+        leaveWaitingButton.addEventListener('click', () => {
+            console.log('Leave waiting button clicked');
+            leaveGame();
+        });
+    }
+
+    // Forfeit button in game area
+    const forfeitButton = document.getElementById('forfeit-button');
+    if (forfeitButton) {
+        forfeitButton.addEventListener('click', () => {
+            console.log('Forfeit button clicked');
+            leaveGame();
+        });
+    }
+}
+
+function leaveGame() {
+    console.log('Leaving game...');
+
+    // Stop timer
+    stopTimer();
+
+    // Close WebSocket connection (this triggers backend cleanup)
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close();
+    }
+
+    // Reset state
+    isConnected = false;
+    currentGameState = 'CONNECTING';
+    currentAnswer = '';
+    rematchRequested = false;
+    opponentWantsRematch = false;
+
+    // Show lobby, hide everything else
+    showElement(elements.lobbyArea);
+    hideElement(elements.statusText);
+    hideElement(elements.waitingArea);
+    hideElement(elements.gameArea);
+    hideElement(elements.resultArea);
+
+    // Reset scores
+    if (elements.yourScoreSpan) elements.yourScoreSpan.textContent = '0';
+    if (elements.opponentScoreSpan) elements.opponentScoreSpan.textContent = '0';
+    if (elements.timer) elements.timer.textContent = '60';
 }
 
 // ==================== WEBSOCKET VERBINDUNG ====================
