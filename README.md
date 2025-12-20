@@ -8,7 +8,7 @@ A real-time multiplayer math quiz game built with Spring Boot and WebSockets.
 
 <p align="center">
   <img src="screenshots/Screenshot%202025-12-20%20231511.png" width="45%" alt="Lobby Screen" />
-  <img src="screenshots/Screenshot%202025-12-20%20231541.png" width="45%" alt="Gameplay" />
+  <img src="screenshots/Screenshot%202025-12-20%20233923.png" width="45%" alt="Gameplay" />
 </p>
 
 ## Features
