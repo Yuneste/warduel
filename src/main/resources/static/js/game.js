@@ -259,7 +259,7 @@ function handleQuestion(message) {
 }
 
 /**
- * @param {{yourScore: number, opponentScore: number, correct: boolean}} message
+ * @param {{yourScore: number, opponentScore: number, wasCorrect: boolean}} message
  */
 function handleScoreUpdate(message) {
     console.log('Score update:', message.yourScore, '/', message.opponentScore);
@@ -269,11 +269,11 @@ function handleScoreUpdate(message) {
     elements.opponentScoreSpan.textContent = message.opponentScore.toString();
 
     // Trigger answer display animation
-    if(message.correct !== undefined && message.correct !== null) {
+    if(message.wasCorrect !== undefined && message.wasCorrect !== null) {
         const answerDisplay = elements.answerDisplay;
         answerDisplay.classList.remove('blink-red', 'blink-green');
 
-        if(message.correct) {
+        if(message.wasCorrect) {
             answerDisplay.classList.add('blink-green');
         } else {
             answerDisplay.classList.add('blink-red');
@@ -286,8 +286,8 @@ function handleScoreUpdate(message) {
     }
 
     // Show Feedback
-    if(message.correct !== undefined && message.correct !== null) {
-        showFeedback(message.correct ? '✓ Richtig!' : '✗ Falsch!', message.correct);
+    if(message.wasCorrect !== undefined && message.wasCorrect !== null) {
+        showFeedback(message.wasCorrect ? '✓ Richtig!' : '✗ Falsch!', message.wasCorrect);
     }
 }
 
