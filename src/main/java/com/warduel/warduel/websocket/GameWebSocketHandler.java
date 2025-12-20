@@ -1,12 +1,13 @@
 package com.warduel.warduel.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.warduel.warduel.dto.*;
-import com.warduel.warduel.model.GameSession;
-import com.warduel.warduel.model.Player;
-import com.warduel.warduel.model.Question;
+import com.warduel.warduel.model.*;
 import com.warduel.warduel.service.GameService;
+
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -15,6 +16,7 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -181,6 +183,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      */
     @Override
     public void afterConnectionClosed(WebSocketSession session, @Nullable CloseStatus status) {
+        if (session == null) {
+            log.warn("afterConnectionClosed called with null session");
+            return;
+        }
+
         String playerId = session.getId();
         log.info("WebSocket connection closed: {} - Status: {}", playerId, status);
 

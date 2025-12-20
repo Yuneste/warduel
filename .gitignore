@@ -58,3 +58,6 @@ hs_err_pid*
 # Spring Boot
 application-local.properties
 application-dev.properties
+
+# other
+project's_description.txt
