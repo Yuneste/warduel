@@ -2,6 +2,7 @@ package com.warduel.warduel.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.warduel.warduel.config.GameConfiguration;
 import com.warduel.warduel.dto.*;
 import com.warduel.warduel.model.*;
 import com.warduel.warduel.service.GameService;
@@ -27,11 +28,13 @@ import java.util.concurrent.TimeUnit;
 public class GameWebSocketHandler extends TextWebSocketHandler {
 
     private final GameService gameService;
+    private final GameConfiguration gameConfig;
     private final ObjectMapper objectMapper;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
 
-    public GameWebSocketHandler(GameService gameService, ObjectMapper objectMapper) {
+    public GameWebSocketHandler(GameService gameService, GameConfiguration gameConfig, ObjectMapper objectMapper) {
         this.gameService = gameService;
+        this.gameConfig = gameConfig;
         this.objectMapper = objectMapper;
     }
 
@@ -152,8 +155,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             sendScoreUpdate(opponent, player, false);
         }
 
-        if(player.getScore() >= 20) {
-            log.info("Player {} reached 20 points! Ending game immediately", playerId);
+        // Prüfe vorzeitigen Sieg (wenn aktiviert)
+        if(gameConfig.hasWinScore() && player.getScore() >= gameConfig.getWinScore()) {
+            log.info("Player {} reached {} points! Ending game immediately", playerId, gameConfig.getWinScore());
             endGame(game);
             return;  // Wichtig: Keine weitere Frage senden!
         }
@@ -331,7 +335,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             } catch (Exception e) {
                 log.error("Error ending game", e);
             }
-        }, GameSession.GAME_DURATION_SECONDS, TimeUnit.SECONDS);
+        }, game.getDurationSeconds(), TimeUnit.SECONDS);
     }
 
     /**

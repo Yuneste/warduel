@@ -1,5 +1,6 @@
 package com.warduel.warduel.service;
 
+import com.warduel.warduel.config.GameConfiguration;
 import com.warduel.warduel.model.Question;
 import org.springframework.stereotype.Service;
 
@@ -15,9 +16,11 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 public class QuestionGeneratorService {
 
-    // Zahlenbereich für Operationen
-    private static final int MIN_NUMBER = 1;
-    private static final int MAX_NUMBER = 20;
+    private final GameConfiguration gameConfig;
+
+    public QuestionGeneratorService(GameConfiguration gameConfig) {
+        this.gameConfig = gameConfig;
+    }
 
     /**
      * Generiert eine Liste von zufälligen Fragen
@@ -58,8 +61,8 @@ public class QuestionGeneratorService {
      * Beispiel: 5 + 3 = 8
      */
     private Question generateAddition() {
-        int num1 = ThreadLocalRandom.current().nextInt(MIN_NUMBER, MAX_NUMBER + 1);
-        int num2 = ThreadLocalRandom.current().nextInt(MIN_NUMBER, MAX_NUMBER + 1);
+        int num1 = ThreadLocalRandom.current().nextInt(gameConfig.getMinNumber(), gameConfig.getMaxNumber() + 1);
+        int num2 = ThreadLocalRandom.current().nextInt(gameConfig.getMinNumber(), gameConfig.getMaxNumber() + 1);
 
         int answer = num1 + num2;
 
@@ -73,8 +76,8 @@ public class QuestionGeneratorService {
      * Stellt sicher dass das Ergebnis positiv ist
      */
     private Question generateSubtraction() {
-        int num1 = ThreadLocalRandom.current().nextInt(MIN_NUMBER, MAX_NUMBER + 1);
-        int num2 = ThreadLocalRandom.current().nextInt(MIN_NUMBER, MAX_NUMBER + 1);
+        int num1 = ThreadLocalRandom.current().nextInt(gameConfig.getMinNumber(), gameConfig.getMaxNumber() + 1);
+        int num2 = ThreadLocalRandom.current().nextInt(gameConfig.getMinNumber(), gameConfig.getMaxNumber() + 1);
 
         int larger = Math.max(num1, num2);
         int smaller = Math.min(num1, num2);
@@ -91,8 +94,8 @@ public class QuestionGeneratorService {
      * Nutzt kleinere Zahlen für einfachere Multiplikation
      */
     private Question generateMultiplication() {
-        int num1 = ThreadLocalRandom.current().nextInt(1, 11);
-        int num2 = ThreadLocalRandom.current().nextInt(1, 11);
+        int num1 = ThreadLocalRandom.current().nextInt(gameConfig.getMultiplicationMin(), gameConfig.getMultiplicationMax() + 1);
+        int num2 = ThreadLocalRandom.current().nextInt(gameConfig.getMultiplicationMin(), gameConfig.getMultiplicationMax() + 1);
 
         int answer = num1 * num2;
 
@@ -107,8 +110,8 @@ public class QuestionGeneratorService {
      */
     private Question generateDivision() {
         // Erst das Ergebnis wählen, dann rückwärts rechnen
-        int answer = ThreadLocalRandom.current().nextInt(1, 11);
-        int num2 = ThreadLocalRandom.current().nextInt(1, 11);
+        int answer = ThreadLocalRandom.current().nextInt(gameConfig.getDivisionMin(), gameConfig.getDivisionMax() + 1);
+        int num2 = ThreadLocalRandom.current().nextInt(gameConfig.getDivisionMin(), gameConfig.getDivisionMax() + 1);
         int num1 = answer * num2;
 
         String questionText = num1 + " ÷ " + num2;

@@ -1,5 +1,6 @@
 package com.warduel.warduel.service;
 
+import com.warduel.warduel.config.GameConfiguration;
 import com.warduel.warduel.model.GameSession;
 import com.warduel.warduel.model.Player;
 import com.warduel.warduel.model.Question;
@@ -21,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GameService {
 
     private final QuestionGeneratorService questionGenerator;
+    private final GameConfiguration gameConfig;
 
     // Map: PlayerId -> GameSession (um schnell das Spiel eines Spielers zu finden)
     private final Map<String, GameSession> playerToGame = new ConcurrentHashMap<>();
@@ -28,11 +30,9 @@ public class GameService {
     // Warteschlange für Spieler die ein Spiel suchen
     private GameSession waitingGame = null;
 
-    // Anzahl Fragen pro Spiel
-    private static final int QUESTIONS_PER_GAME = 20;
-
-    public GameService(QuestionGeneratorService questionGenerator) {
+    public GameService(QuestionGeneratorService questionGenerator, GameConfiguration gameConfig) {
         this.questionGenerator = questionGenerator;
+        this.gameConfig = gameConfig;
     }
 
     /**
@@ -86,9 +86,12 @@ public class GameService {
      * Bereitet Spiel vor und startet es
      */
     private void prepareGame(GameSession game) {
+        // Setze Spiel-Konfiguration
+        game.setDurationSeconds(gameConfig.getDurationSeconds());
+
         // Generiere ZWEI verschiedene Fragenlisten
-        List<Question> questionsP1 = questionGenerator.generateQuestions(QUESTIONS_PER_GAME);
-        List<Question> questionsP2 = questionGenerator.generateQuestions(QUESTIONS_PER_GAME);
+        List<Question> questionsP1 = questionGenerator.generateQuestions(gameConfig.getQuestionsPerGame());
+        List<Question> questionsP2 = questionGenerator.generateQuestions(gameConfig.getQuestionsPerGame());
 
         // Gib jedem Spieler seine eigenen Fragen
         game.getPlayer1().setQuestions(questionsP1);
@@ -99,8 +102,8 @@ public class GameService {
 
         game.startGame();
 
-        log.info("Game {} started - P1: {} questions, P2: {} questions",
-                game.getGameId(), questionsP1.size(), questionsP2.size());
+        log.info("Game {} started - Duration: {}s, P1: {} questions, P2: {} questions",
+                game.getGameId(), gameConfig.getDurationSeconds(), questionsP1.size(), questionsP2.size());
     }
 
     /**

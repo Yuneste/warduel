@@ -28,11 +28,11 @@ public class GameSession {
         FINISHED    // Spiel beendet
     }
 
-    // Konstanten
-    public static final int GAME_DURATION_SECONDS = 60;
-
     // Spiel-Identifikation
     private final String gameId;
+
+    // Spiel-Konfiguration (wird von GameService gesetzt)
+    private int durationSeconds = 60;  // Default-Wert
 
     // Spieler (volatile für Thread-Sicherheit)
     private volatile Player player1;
@@ -110,7 +110,7 @@ public class GameSession {
         }
         this.status = GameStatus.RUNNING;
         this.startTime = LocalDateTime.now();
-        this.endTime = this.startTime.plusSeconds(GAME_DURATION_SECONDS);
+        this.endTime = this.startTime.plusSeconds(durationSeconds);
 
         // Reset Fragen-Indizes und Scores für beide Spieler
         if(player1 != null) {
@@ -148,7 +148,7 @@ public class GameSession {
      */
     public long getRemainingSeconds() {
         if(endTime == null || status != GameStatus.RUNNING) {
-            return GAME_DURATION_SECONDS;
+            return durationSeconds;
         }
 
         LocalDateTime now = LocalDateTime.now();
