@@ -212,10 +212,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             // Entferne Spieler
             gameService.removePlayer(playerId);
 
-            GameSession.GameStatus status = game.getStatus();
+            GameSession.GameStatus gameStatus = game.getStatus();
 
             // WICHTIG: Behandle Disconnection je nach Game Status
-            if(status == GameSession.GameStatus.RUNNING) {
+            if(gameStatus == GameSession.GameStatus.RUNNING) {
                 // Spiel läuft bereits - Beende es und informiere Gegner
                 try {
                     game.endGame();
@@ -236,11 +236,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 } catch (Exception e) {
                     log.error("Error ending game", e);
                 }
-            } else if(status == GameSession.GameStatus.READY || status == GameSession.GameStatus.WAITING) {
+            } else if(gameStatus == GameSession.GameStatus.READY || gameStatus == GameSession.GameStatus.WAITING) {
                 // Spiel noch nicht gestartet (Countdown oder Warteschlange) - Abbrechen
                 try {
                     game.endGame();
-                    log.info("Game {} cancelled because player {} left during {}", game.getGameId(), playerId, status);
+                    log.info("Game {} cancelled because player {} left during {}", game.getGameId(), playerId, gameStatus);
 
                     // Informiere Gegner dass Spiel abgebrochen wurde
                     if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
