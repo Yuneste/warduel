@@ -28,6 +28,9 @@ function initializeGame() {
     // Start animations
     animations.startPointingHand();
 
+    // Setup visibility detection (for mobile lock/unlock)
+    websocket.setupVisibilityDetection();
+
     console.log('Game initialized successfully');
 }
 

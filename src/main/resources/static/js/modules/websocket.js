@@ -7,6 +7,9 @@ import { gameState } from './gameState.js';
 import { ui } from './uiController.js';
 import { handleMessage } from './messageHandlers.js';
 
+// Track if connection was intentionally closed
+let intentionalClose = false;
+
 export const websocket = {
     // Connect to server
     connect() {
@@ -76,9 +79,45 @@ export const websocket = {
 
     // Close connection
     close() {
+        intentionalClose = true;
         const socket = gameState.getSocket();
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.close();
+        }
+    },
+
+    // Check if connection is alive
+    isConnected() {
+        return gameState.isSocketConnected();
+    },
+
+    // Setup page visibility detection (for mobile lock/unlock)
+    setupVisibilityDetection() {
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                // Page became visible (user unlocked phone or switched back to tab)
+                console.log('Page became visible, checking connection...');
+                this.checkConnectionOnVisibilityChange();
+            }
+        });
+    },
+
+    // Check connection when page becomes visible
+    checkConnectionOnVisibilityChange() {
+        const socket = gameState.getSocket();
+
+        // If no socket or connection is closed (but not intentionally)
+        if (!socket || socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
+            if (!intentionalClose && gameState.currentGameState !== 'CONNECTING') {
+                console.warn('Connection lost while page was hidden');
+
+                // Show error and return to lobby after 3 seconds
+                ui.showError('Connection lost. Returning to lobby...');
+
+                setTimeout(() => {
+                    location.reload();
+                }, 3000);
+            }
         }
     }
 };
