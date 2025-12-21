@@ -1,0 +1,67 @@
+/**
+ * Design System Variables
+ * Centralized design tokens
+ */
+
+// ==================== COLORS ====================
+
+$coral: #FF6B6B;
+$peach: #FFE66D;
+$mint: #4ECDC4;
+$teal: #44A6C6;
+$dark: #2C3E50;
+$light: #F8F9FA;
+$white: #FFFFFF;
+
+// ==================== SHADOWS ====================
+
+$shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.08);
+$shadow-md: 0 8px 30px rgba(0, 0, 0, 0.12);
+$shadow-lg: 0 15px 50px rgba(0, 0, 0, 0.15);
+
+// ==================== SPACING ====================
+
+$spacing-xs: 8px;
+$spacing-sm: 12px;
+$spacing-md: 15px;
+$spacing-lg: 20px;
+$spacing-xl: 30px;
+$spacing-xxl: 40px;
+
+// ==================== BORDER RADIUS ====================
+
+$radius-sm: 25px;
+$radius-md: 35px;
+$radius-lg: 50px;
+$radius-xl: 60px;
+
+// ==================== TYPOGRAPHY ====================
+
+$font-display: 'Fredoka', sans-serif;
+$font-body: 'Manrope', sans-serif;
+
+$font-size-xs: 0.85rem;
+$font-size-sm: 0.9rem;
+$font-size-base: 1rem;
+$font-size-md: 1.2rem;
+$font-size-lg: 1.5rem;
+$font-size-xl: 2rem;
+$font-size-xxl: 2.5rem;
+$font-size-xxxl: 3rem;
+
+// ==================== TRANSITIONS ====================
+
+$transition-fast: 0.2s;
+$transition-base: 0.3s;
+$transition-slow: 0.6s;
+
+$easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+$easing-smooth: ease-in-out;
+
+// ==================== Z-INDEX ====================
+
+$z-background: 0;
+$z-content: 1;
+$z-overlay: 2;
+$z-modal: 3;
+$z-popover: 10;

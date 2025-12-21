@@ -122,12 +122,14 @@ body {
     position: absolute;
     width: 140px;
     height: 120px;
-    background: linear-gradient(135deg, #FF6B6B, #FFE66D);
-    border-radius: 60% 60% 50% 50% / 60% 60% 50% 50%;
+    background: linear-gradient(135deg, #FFB3BA 0%, #FFAEC9 30%, #FFC3D5 60%, #FFB3E6 100%);
+    border-radius: 75% 70% 65% 68% / 70% 65% 68% 72%;
     top: 20px;
     left: 30px;
     animation: brainFloat 3s ease-in-out infinite;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-md),
+                inset -5px -8px 12px rgba(255, 120, 150, 0.3),
+                inset 5px 8px 12px rgba(255, 200, 220, 0.4);
 }
 
 @keyframes brainFloat {
@@ -135,29 +137,32 @@ body {
     50% { transform: translateY(-10px) rotate(2deg); }
 }
 
-/* Brain details (folds) */
+/* Brain details (folds/wrinkles) */
 .brain-body::before,
 .brain-body::after {
     content: '';
     position: absolute;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
+    background: rgba(180, 80, 120, 0.25);
+    box-shadow: 0 1px 3px rgba(200, 100, 140, 0.3),
+                inset 1px 2px 4px rgba(255, 150, 180, 0.4);
 }
 
 .brain-body::before {
-    width: 30px;
-    height: 40px;
-    top: 20px;
-    left: 20px;
-    border-radius: 60% 40% 40% 60%;
+    width: 45px;
+    height: 55px;
+    top: 15px;
+    left: 15px;
+    border-radius: 70% 45% 50% 65% / 60% 55% 70% 50%;
+    transform: rotate(-8deg);
 }
 
 .brain-body::after {
-    width: 35px;
-    height: 45px;
-    top: 15px;
-    right: 15px;
-    border-radius: 40% 60% 60% 40%;
+    width: 48px;
+    height: 58px;
+    top: 12px;
+    right: 12px;
+    border-radius: 50% 68% 65% 48% / 70% 52% 65% 60%;
+    transform: rotate(10deg);
 }
 
 /* Eyes */
@@ -255,26 +260,39 @@ body {
 /* Pen */
 .pen {
     position: absolute;
-    width: 3px;
-    height: 35px;
-    background: linear-gradient(to bottom, var(--coral), var(--dark));
-    border-radius: 5px;
-    bottom: 15px;
-    right: -20px;
-    transform: rotate(45deg);
+    width: 5px;
+    height: 38px;
+    background: linear-gradient(to bottom, #4A90E2 0%, #2C5F8D 50%, #1E3A5F 100%);
+    border-radius: 2px 2px 0 0;
+    bottom: 20px;
+    right: -18px;
+    transform: rotate(40deg);
     transition: transform 0.3s ease;
 }
 
+/* Pen tip (pointy writing end) */
 .pen::before {
     content: '';
     position: absolute;
-    width: 0;
-    height: 0;
-    border-left: 3px solid transparent;
-    border-right: 3px solid transparent;
-    border-top: 6px solid var(--dark);
-    bottom: -6px;
-    left: -1.5px;
+    width: 3px;
+    height: 5px;
+    background: linear-gradient(to bottom, #1E3A5F, #0F1F30);
+    bottom: -5px;
+    left: 1px;
+    clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+}
+
+/* Pen cap/eraser */
+.pen::after {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 6px;
+    background: #FFB3BA;
+    border-radius: 3px 3px 0 0;
+    top: -4px;
+    left: -1px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* Paper */
@@ -1055,6 +1073,8 @@ body {
         height: 95px;
         top: 15px;
         left: 25px;
+        background: linear-gradient(135deg, #FFB3BA 0%, #FFAEC9 30%, #FFC3D5 60%, #FFB3E6 100%);
+        border-radius: 75% 70% 65% 68% / 70% 65% 68% 72%;
     }
 
     .brain-eyes {
@@ -1079,8 +1099,10 @@ body {
     }
 
     .pen {
-        height: 28px;
-        bottom: 12px;
+        width: 4px;
+        height: 30px;
+        bottom: 15px;
+        background: linear-gradient(to bottom, #4A90E2 0%, #2C5F8D 50%, #1E3A5F 100%);
     }
 
     .paper {

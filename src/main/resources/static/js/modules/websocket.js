@@ -1,0 +1,84 @@
+/**
+ * WebSocket Connection Manager
+ * Handles all WebSocket communication
+ */
+
+import { gameState } from './gameState.js';
+import { ui } from './uiController.js';
+import { handleMessage } from './messageHandlers.js';
+
+export const websocket = {
+    // Connect to server
+    connect() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/game`;
+
+        console.log('Connecting to:', wsUrl);
+        ui.updateStatus('Connecting to server...');
+
+        try {
+            const socket = new WebSocket(wsUrl);
+            gameState.setSocket(socket);
+
+            socket.onopen = this.handleOpen.bind(this);
+            socket.onmessage = this.handleMessage.bind(this);
+            socket.onerror = this.handleError.bind(this);
+            socket.onclose = this.handleClose.bind(this);
+        } catch (error) {
+            console.error('WebSocket error:', error);
+            ui.showError('Connection error!');
+        }
+    },
+
+    // Connection opened
+    handleOpen() {
+        console.log('WebSocket connected');
+        gameState.isConnected = true;
+        ui.showWaiting();
+    },
+
+    // Message received
+    handleMessage(event) {
+        try {
+            const message = JSON.parse(event.data);
+            console.log('🔵 Received:', message.type, message);
+            handleMessage(message);
+        } catch (error) {
+            console.error('Error parsing message:', error);
+        }
+    },
+
+    // Connection error
+    handleError(event) {
+        console.error('WebSocket error:', event);
+        ui.showError('Connection error!');
+    },
+
+    // Connection closed
+    handleClose(event) {
+        console.log('WebSocket closed:', event);
+        gameState.isConnected = false;
+
+        if (gameState.currentGameState !== 'FINISHED') {
+            ui.showError('Connection lost!');
+        }
+    },
+
+    // Send message to server
+    send(message) {
+        if (gameState.isSocketConnected()) {
+            gameState.getSocket().send(JSON.stringify(message));
+        } else {
+            console.error('Cannot send - not connected');
+            ui.showError('No connection!');
+        }
+    },
+
+    // Close connection
+    close() {
+        const socket = gameState.getSocket();
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.close();
+        }
+    }
+};

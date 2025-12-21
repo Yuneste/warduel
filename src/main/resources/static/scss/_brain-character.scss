@@ -1,0 +1,260 @@
+/**
+ * Brain Character
+ * Animated mascot for the lobby
+ */
+
+@import 'variables';
+
+.brain-character {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto $spacing-xxl;
+    cursor: pointer;
+    transition: transform $transition-base ease;
+
+    &:hover {
+        transform: scale(1.05);
+    }
+}
+
+// Brain body
+.brain-body {
+    position: absolute;
+    width: 140px;
+    height: 120px;
+    background: linear-gradient(135deg, $coral, $peach);
+    border-radius: 60% 60% 50% 50% / 60% 60% 50% 50%;
+    top: 20px;
+    left: 30px;
+    animation: brainFloat 3s $easing-smooth infinite;
+    box-shadow: $shadow-md;
+
+    // Brain folds/details
+    &::before,
+    &::after {
+        content: '';
+        position: absolute;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+    }
+
+    &::before {
+        width: 30px;
+        height: 40px;
+        top: 20px;
+        left: 20px;
+        border-radius: 60% 40% 40% 60%;
+    }
+
+    &::after {
+        width: 35px;
+        height: 45px;
+        top: 15px;
+        right: 15px;
+        border-radius: 40% 60% 60% 40%;
+    }
+}
+
+@keyframes brainFloat {
+    0%, 100% { transform: translateY(0px) rotate(-2deg); }
+    50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+// Eyes
+.brain-eyes {
+    position: absolute;
+    width: 100%;
+    height: 30px;
+    top: 65px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    z-index: $z-overlay;
+}
+
+.eye {
+    width: 22px;
+    height: 22px;
+    background: $white;
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    animation: blink 4s infinite;
+
+    &::after {
+        content: '';
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: $dark;
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        animation: eyeMove 3s $easing-smooth infinite;
+    }
+}
+
+@keyframes blink {
+    0%, 48%, 52%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.1); }
+}
+
+@keyframes eyeMove {
+    0%, 100% { transform: translate(-50%, -50%); }
+    25% { transform: translate(-40%, -50%); }
+    75% { transform: translate(-60%, -50%); }
+}
+
+// Arms
+.brain-arm {
+    position: absolute;
+    width: 4px;
+    background: $dark;
+    border-radius: 10px;
+    z-index: $z-content;
+
+    &.left {
+        height: 60px;
+        top: 80px;
+        left: 20px;
+        transform: rotate(-25deg);
+        transform-origin: top center;
+    }
+
+    &.right {
+        height: 60px;
+        top: 80px;
+        right: 20px;
+        transform: rotate(25deg);
+        transform-origin: top center;
+    }
+}
+
+// Hands
+.brain-hand {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: $dark;
+    border-radius: 50%;
+
+    &.left {
+        bottom: -8px;
+        left: -4px;
+    }
+
+    &.right {
+        bottom: -8px;
+        right: -4px;
+    }
+}
+
+// Pen
+.pen {
+    position: absolute;
+    width: 3px;
+    height: 35px;
+    background: linear-gradient(to bottom, $coral, $dark);
+    border-radius: 5px;
+    bottom: 15px;
+    right: -20px;
+    transform: rotate(45deg);
+    transition: transform $transition-base ease;
+
+    &::before {
+        content: '';
+        position: absolute;
+        width: 0;
+        height: 0;
+        border-left: 3px solid transparent;
+        border-right: 3px solid transparent;
+        border-top: 6px solid $dark;
+        bottom: -6px;
+        left: -1.5px;
+    }
+}
+
+// Paper
+.paper {
+    position: absolute;
+    width: 40px;
+    height: 50px;
+    background: $white;
+    border-radius: 5px;
+    bottom: 20px;
+    left: -25px;
+    box-shadow: $shadow-sm;
+    border: 2px solid $dark;
+
+    &::before,
+    &::after {
+        content: '';
+        position: absolute;
+        width: 25px;
+        height: 2px;
+        background: $mint;
+        border-radius: 2px;
+        left: 7px;
+    }
+
+    &::before { top: 12px; }
+    &::after { top: 20px; }
+}
+
+// Lightbulb (appears on hover)
+.lightbulb {
+    position: absolute;
+    width: 35px;
+    height: 45px;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    opacity: 0;
+    transition: all 0.4s $easing-bounce;
+    z-index: $z-popover;
+}
+
+.brain-character:hover .lightbulb {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+}
+
+.bulb {
+    width: 28px;
+    height: 35px;
+    background: linear-gradient(135deg, $peach, #FFD93D);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    position: relative;
+    box-shadow: 0 0 20px rgba(255, 230, 109, 0.8);
+    animation: lightGlow 1s $easing-smooth infinite alternate;
+
+    &::after {
+        content: '';
+        position: absolute;
+        width: 12px;
+        height: 8px;
+        background: #E0E0E0;
+        border-radius: 0 0 3px 3px;
+        bottom: -8px;
+        left: 8px;
+    }
+}
+
+@keyframes lightGlow {
+    from { box-shadow: 0 0 20px rgba(255, 230, 109, 0.6); }
+    to { box-shadow: 0 0 35px rgba(255, 230, 109, 1); }
+}
+
+// Writing animation on hover
+.brain-character:hover .pen {
+    animation: writing 0.5s $easing-smooth infinite;
+}
+
+@keyframes writing {
+    0%, 100% { transform: rotate(45deg) translateY(0); }
+    50% { transform: rotate(45deg) translateY(3px); }
+}

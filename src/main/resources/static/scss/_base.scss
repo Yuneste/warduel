@@ -1,0 +1,105 @@
+/**
+ * Base Styles
+ * Reset, typography, and global styles
+ */
+
+@import 'variables';
+
+// ==================== RESET ====================
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+// ==================== BODY ====================
+
+body {
+    font-family: $font-body;
+    background: linear-gradient(135deg, $peach 0%, $coral 50%, $mint 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: $spacing-lg;
+    overflow-x: hidden;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+// ==================== CONTAINER ====================
+
+.container {
+    max-width: 520px;
+    width: 100%;
+    background: $white;
+    border-radius: $radius-lg;
+    padding: $spacing-xxl;
+    box-shadow: $shadow-lg;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 230, 109, 0.1) 0%, transparent 70%);
+        pointer-events: none;
+        animation: rotate 30s linear infinite;
+    }
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+// ==================== TYPOGRAPHY ====================
+
+.game-title {
+    text-align: center;
+    font-size: $font-size-xxxl;
+    font-family: $font-display;
+    background: linear-gradient(135deg, $coral, $teal);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: $spacing-xl;
+    font-weight: 700;
+    letter-spacing: 2px;
+    position: relative;
+    z-index: $z-content;
+}
+
+.status-text {
+    text-align: center;
+    font-size: $font-size-md;
+    background: linear-gradient(135deg, $coral, $mint);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: $spacing-lg;
+    font-weight: 700;
+    position: relative;
+    z-index: $z-content;
+}
+
+// ==================== VISIBILITY CONTROL ====================
+
+// Hide title and status during gameplay and results
+.container:has(#game-area[style*="display: block"]) .game-title,
+.container:has(#game-area[style*="display: block"]) #status-text,
+.container:has(#result-area[style*="display: block"]) .game-title,
+.container:has(#result-area[style*="display: block"]) #status-text {
+    display: none !important;
+}
