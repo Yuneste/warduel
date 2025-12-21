@@ -34,15 +34,9 @@ export const gameActions = {
 
     // Request rematch
     requestRematch() {
-        if (!gameState.isSocketConnected()) {
-            console.error('Rematch failed: No connection');
-            ui.showError('Connection lost! Returning to lobby...');
-
-            // Return to lobby after showing error
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-            return;
+        // Force check connection before allowing rematch
+        if (!websocket.forceConnectionCheck()) {
+            return; // forceConnectionCheck already shows error and reloads
         }
 
         if (gameState.rematchRequested) {

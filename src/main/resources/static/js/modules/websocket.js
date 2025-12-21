@@ -10,6 +10,9 @@ import { handleMessage } from './messageHandlers.js';
 // Track if connection was intentionally closed
 let intentionalClose = false;
 
+// Heartbeat interval
+let heartbeatInterval = null;
+
 export const websocket = {
     // Connect to server
     connect() {
@@ -37,7 +40,11 @@ export const websocket = {
     handleOpen() {
         console.log('WebSocket connected');
         gameState.isConnected = true;
+        intentionalClose = false; // Reset flag on successful connection
         ui.showWaiting();
+
+        // Start heartbeat
+        this.startHeartbeat();
     },
 
     // Message received
@@ -80,6 +87,7 @@ export const websocket = {
     // Close connection
     close() {
         intentionalClose = true;
+        this.stopHeartbeat(); // Stop heartbeat before closing
         const socket = gameState.getSocket();
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.close();
@@ -106,18 +114,83 @@ export const websocket = {
     checkConnectionOnVisibilityChange() {
         const socket = gameState.getSocket();
 
-        // If no socket or connection is closed (but not intentionally)
-        if (!socket || socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
-            if (!intentionalClose && gameState.currentGameState !== 'CONNECTING') {
-                console.warn('Connection lost while page was hidden');
+        console.log('Checking connection:', {
+            hasSocket: !!socket,
+            readyState: socket ? socket.readyState : 'no socket',
+            intentionalClose,
+            currentGameState: gameState.currentGameState
+        });
 
-                // Show error and return to lobby after 3 seconds
+        // Check if connection is dead
+        const isDisconnected = !socket ||
+                             socket.readyState === WebSocket.CLOSED ||
+                             socket.readyState === WebSocket.CLOSING;
+
+        if (isDisconnected && !intentionalClose) {
+            console.warn('Connection lost! Socket state:', socket ? socket.readyState : 'null');
+
+            // Always reload if we were in a game or waiting
+            if (gameState.currentGameState !== 'CONNECTING') {
                 ui.showError('Connection lost. Returning to lobby...');
 
                 setTimeout(() => {
                     location.reload();
-                }, 3000);
+                }, 2000);
             }
+        } else if (socket && socket.readyState === WebSocket.OPEN) {
+            console.log('Connection is alive');
+        }
+    },
+
+    // Force check connection state (call before important actions)
+    forceConnectionCheck() {
+        const socket = gameState.getSocket();
+
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            console.error('Connection check failed!');
+            ui.showError('Connection lost! Returning to lobby...');
+
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+
+            return false;
+        }
+
+        return true;
+    },
+
+    // Start heartbeat to detect silent disconnections
+    startHeartbeat() {
+        this.stopHeartbeat(); // Clear any existing heartbeat
+
+        // Check connection every 5 seconds
+        heartbeatInterval = setInterval(() => {
+            const socket = gameState.getSocket();
+
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                console.warn('Heartbeat detected disconnection!');
+                this.stopHeartbeat();
+
+                // Only show error if not intentionally closed and not in lobby
+                if (!intentionalClose && gameState.currentGameState !== 'CONNECTING') {
+                    ui.showError('Connection lost! Returning to lobby...');
+
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                }
+            } else {
+                console.log('Heartbeat: Connection alive');
+            }
+        }, 5000); // Check every 5 seconds
+    },
+
+    // Stop heartbeat
+    stopHeartbeat() {
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
         }
     }
 };
