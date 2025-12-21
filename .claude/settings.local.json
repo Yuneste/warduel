@@ -3,7 +3,8 @@
     "allow": [
       "Bash(find:*)",
       "Bash(export:*)",
-      "Bash(./mvnw test:*)"
+      "Bash(./mvnw test:*)",
+      "Skill(frontend-design)"
     ],
     "deny": [],
     "ask": []

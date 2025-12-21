@@ -60,6 +60,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setupNumberPad();
     setupPlayButton();
     setupLeaveButtons();
+    startPointingHandAnimation();
 });
 
 function setupPlayButton() {
@@ -146,7 +147,7 @@ function connectToServer() {
     const wsUrl = `${protocol}//${window.location.host}/game`;
 
     console.log('Connecting to:', wsUrl);
-    updateStatus('Verbinde mit Server...');
+    updateStatus('Connecting to server...');
 
     try {
         socket = new WebSocket(wsUrl);
@@ -164,7 +165,7 @@ function connectToServer() {
 function handleConnectionOpen() {
     console.log('WebSocket connected');
     isConnected = true;
-    updateStatus('Suche nach Gegner...');
+    updateStatus('Searching for opponent...');
     // Make sure waiting area is visible and lobby is hidden
     hideElement(elements.lobbyArea);
     showElement(elements.waitingArea);
@@ -204,7 +205,7 @@ function handleMessage(event) {
 
 function handleError(event) {
     console.error('WebSocket error:', event);
-    showError('Verbindungsfehler!');
+    showError('Connection error!');
 }
 
 function handleConnectionClose(event) {
@@ -212,7 +213,7 @@ function handleConnectionClose(event) {
     isConnected = false;
 
     if(currentGameState !== 'FINISHED') {
-        showError('Verbindung verloren!');
+        showError('Connection lost!');
     }
 }
 
@@ -226,7 +227,7 @@ function handleGameState(message) {
     currentGameState = message.gameStatus;
 
     if(message.gameStatus === 'WAITING') {
-        updateStatus('Warte auf Gegner...');
+        updateStatus('Waiting for opponent...');
     }
 }
 
@@ -242,7 +243,7 @@ function handleQuestion(message) {
     hideElement(elements.resultArea);
 
     // Update Question
-    elements.questionNumber.textContent = `Frage ${message.questionNumber}/20`;
+    elements.questionNumber.textContent = `Question ${message.questionNumber}/20`;
     elements.questionText.textContent = message.questionText;
 
     // Timer
@@ -312,13 +313,13 @@ function handleGameOver(message) {
 
     // Result Message
     if(message.draw) {
-        elements.resultMessage.textContent = 'Unentschieden';
+        elements.resultMessage.textContent = 'Draw';
         elements.resultMessage.className = 'result-message draw';
     } else if(message.youWon) {
-        elements.resultMessage.textContent = 'Sieg!';
+        elements.resultMessage.textContent = 'Victory!';
         elements.resultMessage.className = 'result-message win';
     } else {
-        elements.resultMessage.textContent = 'Niederlage';
+        elements.resultMessage.textContent = 'Defeat';
         elements.resultMessage.className = 'result-message lose';
     }
 
@@ -336,10 +337,10 @@ function handleRematch(message) {
 
     if(message.opponentAccepted) {
         // Both want rematch - game restarts
-        elements.rematchStatus.textContent = 'Rematch startet!';
+        elements.rematchStatus.textContent = 'Rematch starting!';
     } else {
         // Waiting for opponent
-        elements.rematchStatus.textContent = message.statusMessage || 'Warte auf Gegner...';
+        elements.rematchStatus.textContent = message.statusMessage || 'Waiting for opponent...';
     }
 }
 
@@ -427,14 +428,14 @@ function setupNumberPad() {
 
 function submitAnswer() {
     if(!currentAnswer || currentAnswer === '—') {
-        showFeedback('Bitte gib eine Antwort ein!', false);
+        showFeedback('Please enter an answer!', false);
         return;
     }
 
     const answer = parseInt(currentAnswer);
 
     if(isNaN(answer)) {
-        showFeedback('Ungültige Zahl!', false);
+        showFeedback('Invalid number!', false);
         return;
     }
 
@@ -451,7 +452,7 @@ function submitAnswer() {
 
 function requestRematch() {
     if(!socket || socket.readyState !== WebSocket.OPEN) {
-        showError('Keine Verbindung!');
+        showError('No connection!');
         return;
     }
 
@@ -465,8 +466,8 @@ function requestRematch() {
 
     // UI Update
     elements.rematchButton.disabled = true;
-    elements.rematchButton.textContent = 'Warte auf Gegner...';
-    elements.rematchStatus.textContent = 'Warte auf Gegner...';
+    elements.rematchButton.textContent = 'Waiting for opponent...';
+    elements.rematchStatus.textContent = 'Waiting for opponent...';
 
     // Send
     sendToServer({
@@ -484,7 +485,7 @@ function sendToServer(message) {
         socket.send(JSON.stringify(message));
     } else {
         console.error('Cannot send - not connected');
-        showError('Keine Verbindung!');
+        showError('No connection!');
     }
 }
 
@@ -552,6 +553,38 @@ function handleMessage(event) {
     } catch (error) {
         console.error('Error parsing message:', error);
     }
+}
+
+// ==================== POINTING HAND ANIMATION ====================
+
+function startPointingHandAnimation() {
+    const pointingHand = document.querySelector('.pointing-hand');
+    if (!pointingHand) return;
+
+    // Show pointing hand every 15 seconds
+    setInterval(() => {
+        // Only show if lobby is visible
+        const lobbyArea = document.getElementById('lobby-area');
+        if (lobbyArea && lobbyArea.style.display !== 'none') {
+            pointingHand.classList.add('show');
+
+            // Remove class after animation completes (2s)
+            setTimeout(() => {
+                pointingHand.classList.remove('show');
+            }, 2000);
+        }
+    }, 15000);
+
+    // Show once immediately after 2 seconds
+    setTimeout(() => {
+        const lobbyArea = document.getElementById('lobby-area');
+        if (lobbyArea && lobbyArea.style.display !== 'none') {
+            pointingHand.classList.add('show');
+            setTimeout(() => {
+                pointingHand.classList.remove('show');
+            }, 2000);
+        }
+    }, 2000);
 }
 
 // ==================== CLEANUP ====================

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -13,46 +13,67 @@
     <!-- Lobby Area (Start Screen) -->
     <div id="lobby-area" style="display: block;">
         <div class="lobby-hero">
-            <div class="math-symbols">
-                <div class="math-symbol">7 + 3</div>
-                <div class="math-symbol">12 × 5</div>
-                <div class="math-symbol">45 ÷ 9</div>
-                <div class="math-symbol">28 - 14</div>
-                <div class="math-symbol">8 × 6</div>
-                <div class="math-symbol">100 ÷ 4</div>
+            <!-- Animated Brain Character -->
+            <div class="brain-character">
+                <div class="brain-body"></div>
+
+                <div class="brain-eyes">
+                    <div class="eye"></div>
+                    <div class="eye"></div>
+                </div>
+
+                <div class="brain-arm left">
+                    <div class="brain-hand left">
+                        <div class="paper"></div>
+                    </div>
+                </div>
+
+                <div class="brain-arm right">
+                    <div class="brain-hand right">
+                        <div class="pen"></div>
+                    </div>
+                </div>
+
+                <div class="lightbulb">
+                    <div class="bulb"></div>
+                </div>
             </div>
+
             <h2 class="lobby-title">WARDUEL</h2>
-            <p class="lobby-subtitle">Schnelle Mathe-Duelle gegen echte Gegner</p>
+            <p class="lobby-subtitle">Quick Math Duels Against Real Opponents</p>
         </div>
         <div class="lobby-content">
             <div class="lobby-features">
                 <div class="lobby-feature">
-                    <div class="lobby-feature-title">Dauer</div>
+                    <div class="lobby-feature-title">Duration</div>
                     <div class="lobby-feature-value">60s</div>
                 </div>
                 <div class="lobby-feature">
-                    <div class="lobby-feature-title">Fragen</div>
+                    <div class="lobby-feature-title">Questions</div>
                     <div class="lobby-feature-value">20</div>
                 </div>
                 <div class="lobby-feature">
-                    <div class="lobby-feature-title">Ziel</div>
+                    <div class="lobby-feature-title">Goal</div>
                     <div class="lobby-feature-value">20</div>
                 </div>
             </div>
-            <button id="play-button" class="lobby-play-button">
-                Jetzt spielen
-            </button>
+            <div class="button-container">
+                <button id="play-button" class="lobby-play-button">
+                    Play
+                </button>
+                <div class="pointing-hand">👉</div>
+            </div>
         </div>
     </div>
 
     <!-- Status Text -->
-    <div id="status-text" class="status-text" style="display: none;">Verbinde mit Server...</div>
+    <div id="status-text" class="status-text" style="display: none;">Connecting to server...</div>
 
     <!-- Waiting Area -->
     <div id="waiting-area" style="display: none;">
-        <p>Warte auf Gegner...</p>
+        <p>Waiting for opponent...</p>
         <button id="leave-waiting-button" class="btn-secondary" style="margin-top: 20px;">
-            Warteschlange verlassen
+            Leave Queue
         </button>
     </div>
 
@@ -63,24 +84,24 @@
             <!-- Score Container -->
             <div class="score-container">
                 <div class="score-box">
-                    <div class="score-label">Du</div>
+                    <div class="score-label">You</div>
                     <div class="score-value" id="your-score">0</div>
                 </div>
                 <div class="score-box">
-                    <div class="score-label">Gegner</div>
+                    <div class="score-label">Opponent</div>
                     <div class="score-value" id="opponent-score">0</div>
                 </div>
             </div>
 
             <!-- Timer -->
             <div class="timer-box">
-                <div class="timer-label">Zeit</div>
+                <div class="timer-label">Time</div>
                 <div class="timer-value" id="timer">60</div>
             </div>
 
             <!-- Forfeit Button -->
             <button id="forfeit-button" class="btn-danger" style="font-size: 14px; padding: 8px 16px;">
-                Aufgeben
+                Forfeit
             </button>
         </div>
 
@@ -88,8 +109,8 @@
         <div class="game-right-column">
             <!-- Question -->
             <div class="question-box">
-                <div id="question-number" class="question-number">Frage 1/20</div>
-                <div id="question-text" class="question-text">Warte auf Frage...</div>
+                <div id="question-number" class="question-number">Question 1/20</div>
+                <div id="question-text" class="question-text">Waiting for question...</div>
             </div>
 
             <!-- Answer Display -->
@@ -127,11 +148,11 @@
 
         <div class="score-display">
             <div class="score-item">
-                <div class="score-label">Dein Score</div>
+                <div class="score-label">Your Score</div>
                 <div class="score-value" id="your-final-score">0</div>
             </div>
             <div class="score-item">
-                <div class="score-label">Gegner Score</div>
+                <div class="score-label">Opponent Score</div>
                 <div class="score-value" id="opponent-final-score">0</div>
             </div>
         </div>
@@ -143,7 +164,7 @@
         <div id="rematch-status" style="display: none; margin-top: 20px; text-align: center;"></div>
 
         <button class="btn-secondary" onclick="location.reload()" style="margin-top: 20px;">
-            Neues Spiel
+            New Game
         </button>
     </div>
 </div>
