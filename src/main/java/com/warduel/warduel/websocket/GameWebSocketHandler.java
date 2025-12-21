@@ -212,34 +212,44 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             // Entferne Spieler
             gameService.removePlayer(playerId);
 
-            // WICHTIG: Beende das Spiel sofort
-            if(game.getStatus() == GameSession.GameStatus.RUNNING) {
+            GameSession.GameStatus status = game.getStatus();
+
+            // WICHTIG: Behandle Disconnection je nach Game Status
+            if(status == GameSession.GameStatus.RUNNING) {
+                // Spiel läuft bereits - Beende es und informiere Gegner
                 try {
                     game.endGame();
-                    log.info("Game {} ended because player {} disconnected", game.getGameId(), playerId);
+                    log.info("Game {} ended because player {} disconnected during RUNNING", game.getGameId(), playerId);
+
+                    // Informiere Gegner mit Game Over
+                    if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
+                        GameOverMessage msg = new GameOverMessage(
+                                opponent.getScore(),
+                                0,  // Disconnected player gets 0
+                                true,  // Opponent wins
+                                false,  // Not a draw
+                                opponent.getDisplayName()
+                        );
+                        sendMessage(opponent.getSession(), msg);
+                        log.info("Game over sent to opponent {}", opponent.getPlayerId());
+                    }
                 } catch (Exception e) {
                     log.error("Error ending game", e);
                 }
-            }
-
-            // Informiere Gegner
-            if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
+            } else if(status == GameSession.GameStatus.READY || status == GameSession.GameStatus.WAITING) {
+                // Spiel noch nicht gestartet (Countdown oder Warteschlange) - Abbrechen
                 try {
-                    // Sende Game Over an Gegner
-                    GameOverMessage msg = new GameOverMessage(
-                            opponent.getScore(),
-                            0,  // Disconnected player gets 0
-                            true,  // Opponent wins
-                            false,  // Not a draw
-                            opponent.getDisplayName()
-                    );
-                    sendMessage(opponent.getSession(), msg);
+                    game.endGame();
+                    log.info("Game {} cancelled because player {} left during {}", game.getGameId(), playerId, status);
 
-                    // NICHT die Gegner-Session schließen!
-                    // Der Gegner soll die Result-Screen sehen können und selbst entscheiden
-                    log.info("Game over sent to opponent {}, keeping connection open", opponent.getPlayerId());
-                } catch (IOException e) {
-                    log.error("Error notifying opponent", e);
+                    // Informiere Gegner dass Spiel abgebrochen wurde
+                    if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
+                        ErrorMessage msg = new ErrorMessage("Opponent left the queue");
+                        sendMessage(opponent.getSession(), msg);
+                        log.info("Error message sent to opponent {} - game cancelled", opponent.getPlayerId());
+                    }
+                } catch (Exception e) {
+                    log.error("Error cancelling game", e);
                 }
             }
         }

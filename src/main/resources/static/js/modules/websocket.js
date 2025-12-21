@@ -164,26 +164,33 @@ export const websocket = {
     startHeartbeat() {
         this.stopHeartbeat(); // Clear any existing heartbeat
 
-        // Check connection every 5 seconds
+        console.log('🔥 Heartbeat started - checking connection every 3 seconds');
+
+        // Check connection every 3 seconds (faster detection)
         heartbeatInterval = setInterval(() => {
             const socket = gameState.getSocket();
+            const readyState = socket ? socket.readyState : -1;
 
-            if (!socket || socket.readyState !== WebSocket.OPEN) {
-                console.warn('Heartbeat detected disconnection!');
+            // WebSocket.OPEN = 1, CLOSED = 3, CLOSING = 2
+            if (!socket || readyState !== 1) {
+                console.error('💀 Heartbeat detected disconnection! ReadyState:', readyState);
                 this.stopHeartbeat();
 
                 // Only show error if not intentionally closed and not in lobby
-                if (!intentionalClose && gameState.currentGameState !== 'CONNECTING') {
+                if (!intentionalClose) {
+                    console.error('Forcing reload due to disconnection');
                     ui.showError('Connection lost! Returning to lobby...');
 
                     setTimeout(() => {
                         location.reload();
-                    }, 2000);
+                    }, 1500);
                 }
-            } else {
-                console.log('Heartbeat: Connection alive');
             }
-        }, 5000); // Check every 5 seconds
+            // Only log alive status every 15 seconds to reduce noise
+            else if (Math.random() < 0.2) {
+                console.log('💚 Heartbeat: Connection alive');
+            }
+        }, 3000); // Check every 3 seconds
     },
 
     // Stop heartbeat

@@ -91,6 +91,13 @@ function handleRematch(message) {
 function handleError(message) {
     console.error('Server error:', message.errorMessage);
     ui.showError(message.errorMessage);
+
+    // If opponent left queue, return to lobby after showing error
+    if (message.errorMessage && message.errorMessage.includes('left the queue')) {
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+    }
 }
 
 // Timer management
