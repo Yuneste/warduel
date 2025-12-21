@@ -6,6 +6,7 @@ import com.warduel.warduel.dto.*;
 import com.warduel.warduel.model.*;
 import com.warduel.warduel.service.GameService;
 
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.lang.Nullable;
@@ -32,6 +33,19 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     public GameWebSocketHandler(GameService gameService, ObjectMapper objectMapper) {
         this.gameService = gameService;
         this.objectMapper = objectMapper;
+    }
+
+    // cleanup to avoid thread pool resource leak
+    @PreDestroy
+    public void cleanup() {
+        scheduler.shutdown();
+        try {
+            if(!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+        }
     }
 
     /**

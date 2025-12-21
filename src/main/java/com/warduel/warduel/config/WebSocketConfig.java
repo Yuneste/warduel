@@ -23,7 +23,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(gameWebSocketHandler, "/game")
-                .setAllowedOrigins("*")
+                .setAllowedOrigins("https://warduel-production.up.railway.app", "http://localhost:8080")
                 .addInterceptors(new HttpSessionHandshakeInterceptor());
     }
 }
