@@ -1,5 +1,5 @@
 /**
- * WarDuel - Main Game Entry Point
+ * MathWars - Main Game Entry Point
  * Modular architecture for better maintainability
  */
 
@@ -14,7 +14,7 @@ import { gameActions } from './modules/gameActions.js';
 // ==================== INITIALIZATION ====================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('WarDuel starting...');
+    console.log('MathWars starting...');
     initializeGame();
 });
 

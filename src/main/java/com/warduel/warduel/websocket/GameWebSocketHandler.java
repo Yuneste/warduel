@@ -201,10 +201,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      */
     @Override
     public void afterConnectionClosed(WebSocketSession session, @Nullable CloseStatus status) {
-        if (session == null) {
-            log.warn("afterConnectionClosed called with null session");
-            return;
-        }
 
         String playerId = session.getId();
         log.info("WebSocket connection closed: {} - Status: {}", playerId, status);
@@ -345,15 +341,22 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private void endGame(GameSession game) throws IOException {
         game.endGame();
 
-        String winnerName = game.determineWinner();
-        boolean isDraw = game.isDraw();
-
-        log.info("Game {} ended. Winner: {}", game.getGameId(), winnerName);
-
-        // Sende Game Over an beide Spieler
         Player player1 = game.getPlayer1();
         Player player2 = game.getPlayer2();
 
+        int score1 = (player1 != null) ? player1.getScore() : 0;
+        int score2 = (player2 != null) ? player2.getScore() : 0;
+
+        String winnerName = game.determineWinner();
+        boolean isDraw = game.isDraw();
+
+        log.info("Game {} ended. Scores: {}={}, {}={}, Winner: {}, IsDraw: {}",
+                game.getGameId(),
+                (player1 != null ? player1.getDisplayName() : "null"), score1,
+                (player2 != null ? player2.getDisplayName() : "null"), score2,
+                winnerName, isDraw);
+
+        // Sende Game Over an beide Spieler
         if(player1 != null) {
             sendGameOver(player1, player2, winnerName, isDraw);
         }
@@ -371,11 +374,15 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        int playerScore = player.getScore();
         int opponentScore = (opponent != null) ? opponent.getScore() : 0;
         boolean youWon = !isDraw && player.getDisplayName().equals(winnerName);
 
+        log.info("Sending GameOver to {}: yourScore={}, opponentScore={}, youWon={}, isDraw={}, winnerName={}",
+                player.getDisplayName(), playerScore, opponentScore, youWon, isDraw, winnerName);
+
         GameOverMessage msg = new GameOverMessage(
-                player.getScore(),
+                playerScore,
                 opponentScore,
                 youWon,
                 isDraw,

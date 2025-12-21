@@ -1,5 +1,5 @@
 /**
- * WarDuel - Game Client
+ * MathWars - Game Client
  * WebSocket-basiertes Multiplayer Quiz-Spiel
  */
 
@@ -56,7 +56,7 @@ const elements = {
 // ==================== INITIALISIERUNG ====================
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('WarDuel starting...');
+    console.log('MathWars starting...');
     setupNumberPad();
     setupPlayButton();
     setupLeaveButtons();
