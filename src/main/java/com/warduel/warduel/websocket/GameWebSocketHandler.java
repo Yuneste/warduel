@@ -239,8 +239,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     );
                     sendMessage(opponent.getSession(), msg);
 
-                    // Schließe auch die Gegner-Session
-                    opponent.getSession().close(CloseStatus.NORMAL);
+                    // NICHT die Gegner-Session schließen!
+                    // Der Gegner soll die Result-Screen sehen können und selbst entscheiden
+                    log.info("Game over sent to opponent {}, keeping connection open", opponent.getPlayerId());
                 } catch (IOException e) {
                     log.error("Error notifying opponent", e);
                 }

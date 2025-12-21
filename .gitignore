@@ -59,5 +59,8 @@ hs_err_pid*
 application-local.properties
 application-dev.properties
 
+# Tests (will be updated later as features evolve)
+src/test/
+
 # other
 project's_description.txt
