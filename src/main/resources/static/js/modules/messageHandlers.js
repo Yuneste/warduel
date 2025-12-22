@@ -58,8 +58,10 @@ function handleCountdown(message) {
         // Update text
         waitingText.textContent = 'Game starting...';
 
-        // Calculate progress (3 = 33%, 2 = 66%, 1 = 100%)
-        const progress = (4 - message.countdown) * 33.33;
+        // Calculate progress from 0% to 100% over 8 countdown steps
+        // countdown = 8 → 0%, countdown = 7 → 12.5%, ..., countdown = 1 → 87.5%
+        const totalSteps = 8;
+        const progress = ((totalSteps - message.countdown) / totalSteps) * 100;
         progressFill.style.width = `${progress}%`;
     }
 }
@@ -67,16 +69,25 @@ function handleCountdown(message) {
 function handleQuestion(message) {
     console.log('📝 QUESTION received:', message);
 
-    // Show game area
-    ui.showGame();
+    // Complete the progress bar to 100% before showing game
+    const progressFill = document.getElementById('countdown-progress-fill');
+    if (progressFill) {
+        progressFill.style.width = '100%';
+    }
 
-    // Update question
-    ui.updateQuestion(message.questionText, message.questionNumber);
+    // Small delay to show completion, then show game area
+    setTimeout(() => {
+        // Show game area
+        ui.showGame();
 
-    // Start timer
-    const remainingSeconds = Number(message.remainingSeconds);
-    gameState.setGameEndTime(remainingSeconds);
-    startTimer();
+        // Update question
+        ui.updateQuestion(message.questionText, message.questionNumber);
+
+        // Start timer
+        const remainingSeconds = Number(message.remainingSeconds);
+        gameState.setGameEndTime(remainingSeconds);
+        startTimer();
+    }, 200);
 }
 
 function handleScoreUpdate(message) {

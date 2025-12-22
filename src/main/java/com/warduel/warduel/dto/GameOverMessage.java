@@ -20,6 +20,7 @@ public class GameOverMessage extends BaseMessage {
     private boolean youWon;
     private boolean draw; // Unentschieden
     private String winnerName;
+    private String disconnectMessage; // Message if someone disconnected
 
     public GameOverMessage() {
         super();
@@ -33,5 +34,10 @@ public class GameOverMessage extends BaseMessage {
         this.youWon = youWon;
         this.draw = draw;
         this.winnerName = winnerName;
+    }
+
+    public GameOverMessage(int yourScore, int opponentScore, boolean youWon, boolean draw, String winnerName, String disconnectMessage) {
+        this(yourScore, opponentScore, youWon, draw, winnerName);
+        this.disconnectMessage = disconnectMessage;
     }
 }

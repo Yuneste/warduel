@@ -39,6 +39,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private static final int MAX_MESSAGES_PER_SECOND = 10;
     private final Map<String, RateLimiter> rateLimiters = new ConcurrentHashMap<>();
 
+    // Connection timeout tracking - disconnect if no message in 10 seconds
+    private static final long CONNECTION_TIMEOUT_SECONDS = 10;
+    private final Map<String, Instant> lastMessageTime = new ConcurrentHashMap<>();
+
     private static class RateLimiter {
         private final AtomicInteger messageCount = new AtomicInteger(0);
         private volatile Instant windowStart = Instant.now();
@@ -78,6 +82,56 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
+     * Starts connection timeout checker for a game
+     */
+    private void startConnectionMonitor(GameSession game) {
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                if(game.getStatus() != GameSession.GameStatus.RUNNING) {
+                    return; // Only monitor running games
+                }
+
+                Instant now = Instant.now();
+
+                // Check both players
+                Player player1 = game.getPlayer1();
+                Player player2 = game.getPlayer2();
+
+                if(player1 != null) {
+                    checkPlayerConnection(player1, now, game);
+                }
+                if(player2 != null) {
+                    checkPlayerConnection(player2, now, game);
+                }
+            } catch (Exception e) {
+                log.error("Error in connection monitor", e);
+            }
+        }, 3, 3, TimeUnit.SECONDS); // Check every 3 seconds
+    }
+
+    private void checkPlayerConnection(Player player, Instant now, GameSession game) {
+        String playerId = player.getPlayerId();
+        Instant lastMessage = lastMessageTime.get(playerId);
+
+        if(lastMessage != null) {
+            long secondsSinceLastMessage = now.getEpochSecond() - lastMessage.getEpochSecond();
+
+            if(secondsSinceLastMessage > CONNECTION_TIMEOUT_SECONDS) {
+                log.warn("Player {} timed out - no message in {} seconds", playerId, secondsSinceLastMessage);
+
+                try {
+                    // Close the stale connection
+                    if(player.getSession() != null && player.getSession().isOpen()) {
+                        player.getSession().close(CloseStatus.GOING_AWAY);
+                    }
+                } catch (Exception e) {
+                    log.error("Error closing stale connection for player {}", playerId, e);
+                }
+            }
+        }
+    }
+
+    /**
      * Wird aufgerufen wenn neuer Client verbindet
      */
     @Override
@@ -85,6 +139,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         log.info("New WebSocket connection: {}", session.getId());
 
         try {
+            String playerId = session.getId();
+
+            // Track connection time
+            lastMessageTime.put(playerId, Instant.now());
+
             GameSession game = gameService.joinGame(session);
 
             // Wenn Spiel voll ist, starte es
@@ -110,6 +169,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String playerId = session.getId();
         String payload = message.getPayload();
+
+        // Update last message time for timeout detection
+        lastMessageTime.put(playerId, Instant.now());
 
         // SECURITY: Rate limiting check
         RateLimiter limiter = rateLimiters.computeIfAbsent(playerId, k -> new RateLimiter());
@@ -302,8 +364,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String playerId = session.getId();
         log.info("WebSocket connection closed: {} - Status: {}", playerId, status);
 
-        // SECURITY: Clean up rate limiter to prevent memory leak
+        // SECURITY: Clean up rate limiter and timeout tracker to prevent memory leak
         rateLimiters.remove(playerId);
+        lastMessageTime.remove(playerId);
 
         GameSession game = gameService.getGameByPlayerId(playerId);
         if(game != null) {
@@ -337,16 +400,21 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         log.info("Game {} ended because player {} disconnected during RUNNING (gameplay started)", game.getGameId(), playerId);
 
                         // Informiere Gegner mit Game Over
-                        if(opponent.getSession() != null && opponent.getSession().isOpen()) {
+                        if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
+                            String disconnectedPlayerName = disconnectedPlayer != null ?
+                                disconnectedPlayer.getDisplayName() : "Opponent";
+                            String disconnectMsg = disconnectedPlayerName + " disconnected";
+
                             GameOverMessage msg = new GameOverMessage(
                                     opponent.getScore(),
                                     0,  // Disconnected player gets 0
                                     true,  // Opponent wins
                                     false,  // Not a draw
-                                    opponent.getDisplayName()
+                                    opponent.getDisplayName(),
+                                    disconnectMsg
                             );
                             sendMessage(opponent.getSession(), msg);
-                            log.info("Game over sent to opponent {}", opponent.getPlayerId());
+                            log.info("Game over sent to opponent {} - disconnect message: {}", opponent.getPlayerId(), disconnectMsg);
                         }
                     } catch (Exception e) {
                         log.error("Error ending game", e);
@@ -395,9 +463,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         log.info("Game {} starting countdown with {} questions", game.getGameId(), game.getQuestions().size());
 
-        // Send countdown 3, 2, 1 before starting game
+        // Send countdown 8, 7, 6, 5, 4, 3, 2, 1 before starting game (8 seconds)
         // Game status stays READY during countdown so disconnects are treated as cancellations
-        for(int i = 3; i >= 1; i--) {
+        for(int i = 8; i >= 1; i--) {
             CountdownMessage countdownMsg = new CountdownMessage(i, "Game starting in...");
             sendToAllPlayers(game, countdownMsg);
             Thread.sleep(1000);
@@ -416,6 +484,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         // Starte Timer
         startGameTimer(game);
+
+        // Start connection monitor to detect mobile disconnects
+        startConnectionMonitor(game);
     }
 
     /**

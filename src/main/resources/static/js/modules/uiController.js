@@ -143,16 +143,24 @@ export const ui = {
         elements.opponentScore.textContent = message.opponentScore.toString();
 
         // Result Message
+        let resultText = '';
         if (message.draw) {
-            elements.resultMessage.textContent = 'Draw';
+            resultText = 'Draw';
             elements.resultMessage.className = 'result-message draw';
         } else if (message.youWon) {
-            elements.resultMessage.textContent = 'Victory!';
+            resultText = 'Victory!';
             elements.resultMessage.className = 'result-message win';
         } else {
-            elements.resultMessage.textContent = 'Defeat';
+            resultText = 'Defeat';
             elements.resultMessage.className = 'result-message lose';
         }
+
+        // Add disconnect message if present
+        if (message.disconnectMessage) {
+            resultText += '\n' + message.disconnectMessage;
+        }
+
+        elements.resultMessage.textContent = resultText;
 
         // Rematch Button
         elements.rematchButton.disabled = false;
