@@ -248,16 +248,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
 
         // Finde Spieler
-        Player player = null;
-        Player opponent = null;
-
-        if(game.getPlayer1() != null && game.getPlayer1().getPlayerId().equals(playerId)) {
-            player = game.getPlayer1();
-            opponent = game.getPlayer2();
-        } else if(game.getPlayer2() != null && game.getPlayer2().getPlayerId().equals(playerId)) {
-            player = game.getPlayer2();
-            opponent = game.getPlayer1();
-        }
+        Player player = findPlayerById(game, playerId);
+        Player opponent = findOpponentById(game, playerId);
 
         if(player == null) {
             sendError(session, "Player not found");
@@ -355,9 +347,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        Player opponent = gameService.getOpponent(game, playerId);
-        Player forfeitingPlayer = (game.getPlayer1() != null && game.getPlayer1().getPlayerId().equals(playerId))
-            ? game.getPlayer1() : game.getPlayer2();
+        Player opponent = findOpponentById(game, playerId);
+        Player forfeitingPlayer = findPlayerById(game, playerId);
 
         // End the game
         game.endGame();
@@ -435,12 +426,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             // WICHTIG: Behandle Disconnection je nach Game Status
             if(gameStatus == GameSession.GameStatus.RUNNING) {
                 // Check if actual gameplay occurred (at least one question answered)
-                Player disconnectedPlayer = null;
-                if(game.getPlayer1() != null && game.getPlayer1().getPlayerId().equals(playerId)) {
-                    disconnectedPlayer = game.getPlayer1();
-                } else if(game.getPlayer2() != null && game.getPlayer2().getPlayerId().equals(playerId)) {
-                    disconnectedPlayer = game.getPlayer2();
-                }
+                Player disconnectedPlayer = findPlayerById(game, playerId);
 
                 boolean gameplayStarted = false;
                 if(disconnectedPlayer != null && opponent != null) {
@@ -475,19 +461,29 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         log.error("Error ending game", e);
                     }
                 } else {
-                    // Game just started, no questions answered yet - treat as canceled
+                    // Game just started, no questions answered yet - opponent still wins by forfeit
                     try {
                         game.endGame();
-                        log.info("Game {} cancelled because player {} left immediately after start (no gameplay)", game.getGameId(), playerId);
+                        log.info("Game {} ended - player {} disconnected early (no questions answered)", game.getGameId(), playerId);
 
-                        // Informiere Gegner dass Spiel abgebrochen wurde
+                        // Send GAME_OVER to opponent (they win by default)
                         if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
-                            ErrorMessage msg = new ErrorMessage("Opponent left the game");
+                            String disconnectedPlayerName = disconnectedPlayer != null ?
+                                disconnectedPlayer.getDisplayName() : "Opponent";
+
+                            GameOverMessage msg = new GameOverMessage(
+                                    opponent.getScore(),
+                                    0,  // Disconnected player gets 0
+                                    true,  // Opponent wins
+                                    false,  // Not a draw
+                                    opponent.getDisplayName(),
+                                    disconnectedPlayerName + " disconnected"
+                            );
                             sendMessage(opponent.getSession(), msg);
-                            log.info("Error message sent to opponent {} - game cancelled early", opponent.getPlayerId());
+                            log.info("Game over sent to opponent {} - early disconnect win", opponent.getPlayerId());
                         }
                     } catch (Exception e) {
-                        log.error("Error cancelling game", e);
+                        log.error("Error ending game after early disconnect", e);
                     }
                 }
             } else if(gameStatus == GameSession.GameStatus.READY || gameStatus == GameSession.GameStatus.WAITING) {
@@ -714,6 +710,32 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         );
 
         sendMessage(player.getSession(), msg);
+    }
+
+    /**
+     * Finds player by ID in a game session
+     */
+    @Nullable
+    private Player findPlayerById(GameSession game, String playerId) {
+        if(game.getPlayer1() != null && game.getPlayer1().getPlayerId().equals(playerId)) {
+            return game.getPlayer1();
+        } else if(game.getPlayer2() != null && game.getPlayer2().getPlayerId().equals(playerId)) {
+            return game.getPlayer2();
+        }
+        return null;
+    }
+
+    /**
+     * Finds opponent by player ID in a game session
+     */
+    @Nullable
+    private Player findOpponentById(GameSession game, String playerId) {
+        if(game.getPlayer1() != null && game.getPlayer1().getPlayerId().equals(playerId)) {
+            return game.getPlayer2();
+        } else if(game.getPlayer2() != null && game.getPlayer2().getPlayerId().equals(playerId)) {
+            return game.getPlayer1();
+        }
+        return null;
     }
 
     /**
