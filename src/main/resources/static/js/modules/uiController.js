@@ -221,5 +221,14 @@ export const ui = {
         elements.rematchButton.disabled = true;
         elements.rematchButton.textContent = 'Waiting for opponent...';
         elements.rematchStatus.textContent = 'Waiting for opponent...';
+    },
+
+    // Disable rematch when opponent leaves
+    disableRematch() {
+        elements.rematchButton.disabled = true;
+        elements.rematchButton.textContent = 'Opponent Left';
+        elements.rematchButton.style.opacity = '0.5';
+        elements.rematchButton.style.cursor = 'not-allowed';
+        elements.rematchStatus.textContent = 'Opponent has left the game';
     }
 };

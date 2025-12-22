@@ -417,9 +417,20 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
             GameSession.GameStatus gameStatus = game.getStatus();
 
-            // Don't send error messages if game is already finished (forfeit/normal end)
+            // If game finished naturally and someone leaves, notify opponent (disable rematch)
             if(gameStatus == GameSession.GameStatus.FINISHED) {
-                log.info("Game {} already finished, no disconnect handling needed", game.getGameId());
+                log.info("Game {} already finished - player {} left result screen", game.getGameId(), playerId);
+
+                // Notify opponent that player left (disables rematch button)
+                if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
+                    try {
+                        ErrorMessage msg = new ErrorMessage("Opponent left");
+                        sendMessage(opponent.getSession(), msg);
+                        log.info("Notified opponent {} that player left result screen", opponent.getPlayerId());
+                    } catch (Exception e) {
+                        log.error("Error notifying opponent of disconnect from result screen", e);
+                    }
+                }
                 return;
             }
 

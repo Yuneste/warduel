@@ -124,6 +124,12 @@ function handleError(message) {
     console.error('Server error:', message.errorMessage);
     ui.showError(message.errorMessage);
 
+    // If opponent left after game finished (result screen), disable rematch
+    if (message.errorMessage === 'Opponent left' && gameState.currentGameState === 'FINISHED') {
+        ui.disableRematch();
+        return;
+    }
+
     // If opponent left queue or game early, return to lobby after showing error
     // BUT: Don't reload if game is already finished (GAME_OVER already received)
     if (message.errorMessage &&
