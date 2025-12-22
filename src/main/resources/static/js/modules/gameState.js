@@ -17,10 +17,6 @@ export const gameState = {
     rematchRequested: false,
     opponentWantsRematch: false,
 
-    // Forfeit
-    isForfeiting: false,
-    justShowedResult: false,
-
     // Input
     currentAnswer: '',
 
@@ -44,8 +40,6 @@ export const gameState = {
         this.currentAnswer = '';
         this.rematchRequested = false;
         this.opponentWantsRematch = false;
-        this.isForfeiting = false;
-        this.justShowedResult = false;
         this.stopTimer();
     },
 
