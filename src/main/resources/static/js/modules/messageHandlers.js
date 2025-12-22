@@ -57,6 +57,11 @@ function handleCountdown(message) {
 function handleQuestion(message) {
     console.log('📝 QUESTION received:', message);
 
+    // Reset scores to 0-0 when first question arrives (new game/rematch)
+    if (message.questionNumber === 1) {
+        ui.updateScores(0, 0);
+    }
+
     // Complete the progress bar to 100% before showing game
     const progressFill = document.getElementById('countdown-progress-fill');
     if (progressFill) {

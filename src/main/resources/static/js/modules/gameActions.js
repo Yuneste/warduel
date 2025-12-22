@@ -19,24 +19,33 @@ export const gameActions = {
         console.log('Leaving game...');
 
         if (gameState.currentGameState === 'RUNNING') {
-            // In a running game - send forfeit and wait for GAME_OVER response from server
-            console.log('Forfeiting game - waiting for server response');
+            // In a running game - forfeit means instant loss
+            console.log('Forfeiting game - you lose');
 
-            // Set forfeiting flag to prevent error messages if connection closes
-            gameState.isForfeiting = true;
+            // Stop timer and animations
+            gameState.stopTimer();
+            ui.stopTimerAnimation();
 
-            // Disable forfeit button to prevent multiple clicks
-            const forfeitButton = document.getElementById('forfeit-button');
-            if (forfeitButton) {
-                forfeitButton.disabled = true;
-                forfeitButton.textContent = 'Forfeiting...';
-            }
+            // Set state to FINISHED to prevent error messages
+            gameState.currentGameState = 'FINISHED';
+            gameState.isForfeiting = false;
 
+            // Send forfeit to server (opponent will win)
             websocket.send({
                 type: 'FORFEIT'
             });
-            // Server will send GAME_OVER message showing the loss
-            // UI will be updated when GAME_OVER arrives - don't touch it here
+
+            // Show defeat screen immediately
+            const fakeGameOverMessage = {
+                yourScore: 0,  // Doesn't matter, you lost by forfeiting
+                opponentScore: 999,
+                youWon: false,
+                isDraw: false,
+                winnerName: 'Opponent'
+            };
+
+            ui.showResult();
+            ui.updateGameOver(fakeGameOverMessage);
         } else {
             // In queue/waiting - just leave immediately
             gameState.stopTimer();

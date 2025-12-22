@@ -215,8 +215,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     log.warn("Unknown message type: {}", baseMsg.getType());
             }
         } catch (Exception e) {
-            log.error("Error handling message from {}: {}", playerId, e.getMessage());
-            sendError(session, "Error processing message");
+            log.error("Error handling message from {}: {}", playerId, e.getMessage(), e);
+            sendError(session, "Error processing message: " + e.getMessage());
         }
     }
 
