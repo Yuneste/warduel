@@ -252,7 +252,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         log.error("Error ending game", e);
                     }
                 } else {
-                    // Game just started, no questions answered yet - treat as cancelled
+                    // Game just started, no questions answered yet - treat as canceled
                     try {
                         game.endGame();
                         log.info("Game {} cancelled because player {} left immediately after start (no gameplay)", game.getGameId(), playerId);
@@ -290,15 +290,22 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      * Startet das Spiel
      */
     private void startGame(GameSession game) throws IOException, InterruptedException {
-        game.startGame();
-
         Player player1 = game.getPlayer1();
         Player player2 = game.getPlayer2();
 
-        log.info("Game {} started with {} questions", game.getGameId(), game.getQuestions().size());
+        log.info("Game {} starting countdown with {} questions", game.getGameId(), game.getQuestions().size());
 
-        // Kurze Pause damit Clients bereit sind
-        Thread.sleep(200);
+        // Send countdown 3, 2, 1 before starting game
+        // Game status stays READY during countdown so disconnects are treated as cancellations
+        for(int i = 3; i >= 1; i--) {
+            CountdownMessage countdownMsg = new CountdownMessage(i, "Game starting in...");
+            sendToAllPlayers(game, countdownMsg);
+            Thread.sleep(1000);
+        }
+
+        // NOW start the game (status changes to RUNNING)
+        game.startGame();
+        log.info("Game {} officially started", game.getGameId());
 
         // Calculate remaining seconds ONCE for both players
         long remainingSeconds = game.getRemainingSeconds();

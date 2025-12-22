@@ -16,6 +16,7 @@ import lombok.Setter;
 @JsonSubTypes({
         @JsonSubTypes.Type(value = JoinGameMessage.class, name = "JOIN_GAME"),
         @JsonSubTypes.Type(value = GameStateMessage.class, name = "GAME_STATE"),
+        @JsonSubTypes.Type(value = CountdownMessage.class, name = "COUNTDOWN"),
         @JsonSubTypes.Type(value = QuestionMessage.class, name = "QUESTION"),
         @JsonSubTypes.Type(value = AnswerMessage.class, name = "ANSWER"),
         @JsonSubTypes.Type(value = ScoreUpdateMessage.class, name = "SCORE_UPDATE"),

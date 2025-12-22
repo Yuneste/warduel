@@ -4,7 +4,8 @@
       "Bash(find:*)",
       "Bash(export:*)",
       "Bash(./mvnw test:*)",
-      "Skill(frontend-design)"
+      "Skill(frontend-design)",
+      "Bash(./mvnw clean compile:*)"
     ],
     "deny": [],
     "ask": []

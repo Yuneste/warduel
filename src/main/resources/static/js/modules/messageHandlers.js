@@ -11,6 +11,9 @@ export function handleMessage(message) {
         case 'GAME_STATE':
             handleGameState(message);
             break;
+        case 'COUNTDOWN':
+            handleCountdown(message);
+            break;
         case 'QUESTION':
             handleQuestion(message);
             break;
@@ -38,6 +41,13 @@ function handleGameState(message) {
     if (message.gameStatus === 'WAITING') {
         ui.updateStatus('Waiting for opponent...');
     }
+}
+
+function handleCountdown(message) {
+    console.log('⏱️ COUNTDOWN received:', message.countdown);
+
+    // Keep waiting screen visible with countdown
+    ui.updateStatus(`Starting in ${message.countdown}...`);
 }
 
 function handleQuestion(message) {
