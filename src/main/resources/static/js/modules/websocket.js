@@ -69,11 +69,16 @@ export const websocket = {
         console.log('WebSocket closed:', event);
         gameState.isConnected = false;
 
-        // Don't show error if game is finished or if we're forfeiting (waiting for GAME_OVER)
-        if (gameState.currentGameState !== 'FINISHED' && !gameState.isForfeiting) {
+        // Don't show error if:
+        // - Game is finished
+        // - We're forfeiting
+        // - We just showed a result screen (forfeit, game over)
+        if (gameState.currentGameState !== 'FINISHED' &&
+            !gameState.isForfeiting &&
+            !gameState.justShowedResult) {
             ui.showError('Connection lost!');
-        } else if (gameState.isForfeiting) {
-            console.log('Connection closed during forfeit - waiting for GAME_OVER message');
+        } else {
+            console.log('Connection closed after game ended - this is normal');
         }
     },
 

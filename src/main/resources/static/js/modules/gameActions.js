@@ -29,6 +29,7 @@ export const gameActions = {
             // Set state to FINISHED to prevent error messages
             gameState.currentGameState = 'FINISHED';
             gameState.isForfeiting = false;
+            gameState.justShowedResult = true;  // Flag that we just showed result
 
             // Send forfeit to server (opponent will win)
             websocket.send({

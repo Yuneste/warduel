@@ -103,6 +103,7 @@ function handleGameOver(message) {
     gameState.stopTimer();
     ui.stopTimerAnimation();
     gameState.currentGameState = 'FINISHED';
+    gameState.justShowedResult = true;  // Prevent "Connection lost!" error
 
     // Reset rematch flags
     gameState.rematchRequested = false;
