@@ -18,10 +18,13 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
-
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 @Slf4j
@@ -31,6 +34,29 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final GameConfiguration gameConfig;
     private final ObjectMapper objectMapper;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
+
+    // SECURITY: Rate limiting - max 10 messages per second per player
+    private static final int MAX_MESSAGES_PER_SECOND = 10;
+    private final Map<String, RateLimiter> rateLimiters = new ConcurrentHashMap<>();
+
+    private static class RateLimiter {
+        private final AtomicInteger messageCount = new AtomicInteger(0);
+        private volatile Instant windowStart = Instant.now();
+
+        public boolean allowMessage() {
+            Instant now = Instant.now();
+
+            // Reset window if more than 1 second has passed
+            if(now.isAfter(windowStart.plusSeconds(1))) {
+                windowStart = now;
+                messageCount.set(0);
+            }
+
+            // Check if under limit
+            int count = messageCount.incrementAndGet();
+            return count <= MAX_MESSAGES_PER_SECOND;
+        }
+    }
 
     public GameWebSocketHandler(GameService gameService, GameConfiguration gameConfig, ObjectMapper objectMapper) {
         this.gameService = gameService;
@@ -85,6 +111,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String playerId = session.getId();
         String payload = message.getPayload();
 
+        // SECURITY: Rate limiting check
+        RateLimiter limiter = rateLimiters.computeIfAbsent(playerId, k -> new RateLimiter());
+        if(!limiter.allowMessage()) {
+            log.warn("Rate limit exceeded for player {}", playerId);
+            sendError(session, "Too many messages - slow down!");
+            return;
+        }
+
         log.info("Received message from {}: {}", playerId, payload);
 
         try {
@@ -116,9 +150,23 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String playerId = session.getId();
         AnswerMessage answerMsg = objectMapper.readValue(payload, AnswerMessage.class);
 
+        // SECURITY: Validate answer bounds to prevent extreme values
+        if(Math.abs(answerMsg.getAnswer()) > 1000000) {
+            log.warn("Answer out of bounds from player {}: {}", playerId, answerMsg.getAnswer());
+            sendError(session, "Answer out of valid range");
+            return;
+        }
+
         GameSession game = gameService.getGameByPlayerId(playerId);
         if(game == null || game.getStatus() != GameSession.GameStatus.RUNNING) {
             sendError(session, "Spiel nicht gefunden oder nicht aktiv");
+            return;
+        }
+
+        // SECURITY: Check if time has expired
+        if(game.isTimeUp()) {
+            log.warn("Answer rejected from player {} - time expired", playerId);
+            sendError(session, "Time has expired");
             return;
         }
 
@@ -138,6 +186,18 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             sendError(session, "Spieler nicht gefunden");
             return;
         }
+
+        int currentQuestionIndex = player.getCurrentQuestionIndex();
+
+        // SECURITY: Check if player already answered this question
+        if(player.hasAnsweredQuestion(currentQuestionIndex)) {
+            log.warn("Player {} attempted to answer question {} multiple times", playerId, currentQuestionIndex);
+            sendError(session, "Already answered this question");
+            return;
+        }
+
+        // Mark question as answered IMMEDIATELY to prevent race conditions
+        player.markQuestionAnswered(currentQuestionIndex);
 
         // Prüfe Antwort
         Question currentQuestion = game.getCurrentQuestionForPlayer(player);
@@ -242,6 +302,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String playerId = session.getId();
         log.info("WebSocket connection closed: {} - Status: {}", playerId, status);
 
+        // SECURITY: Clean up rate limiter to prevent memory leak
+        rateLimiters.remove(playerId);
+
         GameSession game = gameService.getGameByPlayerId(playerId);
         if(game != null) {
             Player opponent = gameService.getOpponent(game, playerId);
@@ -344,12 +407,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         game.startGame();
         log.info("Game {} officially started", game.getGameId());
 
-        // Calculate remaining seconds ONCE for both players
-        long remainingSeconds = game.getRemainingSeconds();
+        // Send FULL duration to clients (not remaining seconds which would be less due to countdown delay)
+        long fullDuration = game.getDurationSeconds();
 
         // Sende erste Frage an beide Spieler mit gleicher Zeit
-        sendNextQuestion(player1, game, remainingSeconds);
-        sendNextQuestion(player2, game, remainingSeconds);
+        sendNextQuestion(player1, game, fullDuration);
+        sendNextQuestion(player2, game, fullDuration);
 
         // Starte Timer
         startGameTimer(game);

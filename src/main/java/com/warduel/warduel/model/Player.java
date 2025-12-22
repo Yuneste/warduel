@@ -5,7 +5,9 @@ import lombok.ToString;
 import org.springframework.web.socket.WebSocketSession;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -18,6 +20,7 @@ public class Player {
     private final AtomicInteger score = new AtomicInteger(0);
     private final AtomicInteger currentQuestionIndex = new AtomicInteger(0);
     private List<Question> questions = new ArrayList<>();
+    private final Set<Integer> answeredQuestions = new HashSet<>();
 
     public Player(String playerId, WebSocketSession session, String displayName) {
         this.playerId = playerId;
@@ -47,6 +50,7 @@ public class Player {
 
     public void resetQuestionIndex() {
         this.currentQuestionIndex.set(0);
+        this.answeredQuestions.clear();
     }
 
     public void setQuestions(List<Question> questions) {
@@ -59,5 +63,13 @@ public class Player {
             return questions.get(index);
         }
         return null;
+    }
+
+    public boolean hasAnsweredQuestion(int questionIndex) {
+        return answeredQuestions.contains(questionIndex);
+    }
+
+    public void markQuestionAnswered(int questionIndex) {
+        answeredQuestions.add(questionIndex);
     }
 }
