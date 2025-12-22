@@ -128,7 +128,10 @@ function handleError(message) {
     ui.showError(message.errorMessage);
 
     // If opponent left queue or game early, return to lobby after showing error
-    if (message.errorMessage && (message.errorMessage.includes('left the queue') || message.errorMessage.includes('left the game'))) {
+    // BUT: Don't reload if game is already finished (GAME_OVER already received)
+    if (message.errorMessage &&
+        (message.errorMessage.includes('left the queue') || message.errorMessage.includes('left the game')) &&
+        gameState.currentGameState !== 'FINISHED') {
         setTimeout(() => {
             location.reload();
         }, 2000);

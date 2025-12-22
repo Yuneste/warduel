@@ -426,6 +426,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
             GameSession.GameStatus gameStatus = game.getStatus();
 
+            // Don't send error messages if game is already finished (forfeit/normal end)
+            if(gameStatus == GameSession.GameStatus.FINISHED) {
+                log.info("Game {} already finished, no disconnect handling needed", game.getGameId());
+                return;
+            }
+
             // WICHTIG: Behandle Disconnection je nach Game Status
             if(gameStatus == GameSession.GameStatus.RUNNING) {
                 // Check if actual gameplay occurred (at least one question answered)
