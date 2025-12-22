@@ -46,24 +46,12 @@ function handleGameState(message) {
 function handleCountdown(message) {
     console.log('⏱️ COUNTDOWN received:', message.countdown);
 
-    // Show progress bar container
-    const progressContainer = document.getElementById('countdown-progress-container');
-    const progressFill = document.getElementById('countdown-progress-fill');
-    const waitingText = document.getElementById('waiting-text');
+    // Calculate progress from 0% to 100% over 8 countdown steps
+    const totalSteps = 8;
+    const progress = ((totalSteps - message.countdown) / totalSteps) * 100;
 
-    if (progressContainer && progressFill && waitingText) {
-        // Show progress container
-        progressContainer.style.display = 'block';
-
-        // Update text with rotating tips from server
-        waitingText.textContent = message.message || 'Game starting...';
-
-        // Calculate progress from 0% to 100% over 8 countdown steps
-        // countdown = 8 → 0%, countdown = 7 → 12.5%, ..., countdown = 1 → 87.5%
-        const totalSteps = 8;
-        const progress = ((totalSteps - message.countdown) / totalSteps) * 100;
-        progressFill.style.width = `${progress}%`;
-    }
+    // Use centralized UI method
+    ui.showCountdown(message.message, progress);
 }
 
 function handleQuestion(message) {

@@ -63,6 +63,24 @@ export const ui = {
         this.updateStatus('Searching for opponent...');
     },
 
+    // Update to countdown screen
+    showCountdown(tipText, progress) {
+        // Hide status text during countdown
+        this.hideElement(elements.statusText);
+
+        // Keep waiting area visible
+        this.showElement(elements.waitingArea);
+
+        // Show progress bar
+        const progressContainer = document.getElementById('countdown-progress-container');
+        const progressFill = document.getElementById('countdown-progress-fill');
+        const waitingText = document.getElementById('waiting-text');
+
+        if (progressContainer) progressContainer.style.display = 'block';
+        if (progressFill) progressFill.style.width = `${progress}%`;
+        if (waitingText) waitingText.textContent = tipText || 'Game starting...';
+    },
+
     // Update to game screen
     showGame() {
         this.hideElement(elements.waitingArea);

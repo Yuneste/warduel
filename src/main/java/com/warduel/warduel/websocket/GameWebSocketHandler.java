@@ -201,7 +201,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             }
         } catch (Exception e) {
             log.error("Error handling message from {}: {}", playerId, e.getMessage());
-            sendError(session, "Fehler beim Verarbeiten der Nachricht");
+            sendError(session, "Error processing message");
         }
     }
 
@@ -221,7 +221,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         GameSession game = gameService.getGameByPlayerId(playerId);
         if(game == null || game.getStatus() != GameSession.GameStatus.RUNNING) {
-            sendError(session, "Spiel nicht gefunden oder nicht aktiv");
+            sendError(session, "Game not found or not active");
             return;
         }
 
@@ -245,7 +245,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
 
         if(player == null) {
-            sendError(session, "Spieler nicht gefunden");
+            sendError(session, "Player not found");
             return;
         }
 
@@ -308,15 +308,15 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             // Beide wollen Rematch - starte neues Spiel
             GameSession game = gameService.getGameByPlayerId(playerId);
             if(game != null) {
-                RematchMessage msg = new RematchMessage(true, true, "Rematch startet!");
+                RematchMessage msg = new RematchMessage(true, true, "Rematch starting!");
                 sendToAllPlayers(game, msg);
 
                 Thread.sleep(1000);
-                startGame(game);
+                startGame(game, false); // Skip countdown for rematch
             }
         } else {
             // Warte auf Gegner
-            RematchMessage msg = new RematchMessage(true, false, "Warte auf Gegner...");
+            RematchMessage msg = new RematchMessage(true, false, "Waiting for opponent...");
             sendMessage(session, msg);
         }
     }
@@ -458,28 +458,39 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      * Startet das Spiel
      */
     private void startGame(GameSession game) throws IOException, InterruptedException {
+        startGame(game, true); // Default: show countdown
+    }
+
+    /**
+     * Startet das Spiel mit optionalem Countdown
+     */
+    private void startGame(GameSession game, boolean showCountdown) throws IOException, InterruptedException {
         Player player1 = game.getPlayer1();
         Player player2 = game.getPlayer2();
 
-        log.info("Game {} starting countdown with {} questions", game.getGameId(), game.getQuestions().size());
+        if(showCountdown) {
+            log.info("Game {} starting countdown with {} questions", game.getGameId(), game.getQuestions().size());
 
-        // Tips to show during countdown
-        String[] tips = {
-            "Solve math problems faster than your opponent!",
-            "Type your answer and press Enter to submit",
-            "First to answer 20 questions correctly wins!"
-        };
+            // Tips to show during countdown
+            String[] tips = {
+                "Solve math problems faster than your opponent!",
+                "Type your answer and press Enter to submit",
+                "First to answer 20 questions correctly wins!"
+            };
 
-        // Send countdown 8, 7, 6, 5, 4, 3, 2, 1 before starting game (8 seconds)
-        // Game status stays READY during countdown so disconnects are treated as cancellations
-        for(int i = 8; i >= 1; i--) {
-            // Rotate tips every ~3 seconds (tip 0: 8-6, tip 1: 5-3, tip 2: 2-1)
-            int tipIndex = (8 - i) / 3;
-            if(tipIndex >= tips.length) tipIndex = tips.length - 1;
+            // Send countdown 8, 7, 6, 5, 4, 3, 2, 1 before starting game (8 seconds)
+            // Game status stays READY during countdown so disconnects are treated as cancellations
+            for(int i = 8; i >= 1; i--) {
+                // Rotate tips every ~3 seconds (tip 0: 8-6, tip 1: 5-3, tip 2: 2-1)
+                int tipIndex = (8 - i) / 3;
+                if(tipIndex >= tips.length) tipIndex = tips.length - 1;
 
-            CountdownMessage countdownMsg = new CountdownMessage(i, tips[tipIndex]);
-            sendToAllPlayers(game, countdownMsg);
-            Thread.sleep(1000);
+                CountdownMessage countdownMsg = new CountdownMessage(i, tips[tipIndex]);
+                sendToAllPlayers(game, countdownMsg);
+                Thread.sleep(1000);
+            }
+        } else {
+            log.info("Game {} starting immediately (rematch)", game.getGameId());
         }
 
         // NOW start the game (status changes to RUNNING)
