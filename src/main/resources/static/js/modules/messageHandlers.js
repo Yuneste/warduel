@@ -55,8 +55,8 @@ function handleCountdown(message) {
         // Show progress container
         progressContainer.style.display = 'block';
 
-        // Update text
-        waitingText.textContent = 'Game starting...';
+        // Update text with rotating tips from server
+        waitingText.textContent = message.message || 'Game starting...';
 
         // Calculate progress from 0% to 100% over 8 countdown steps
         // countdown = 8 → 0%, countdown = 7 → 12.5%, ..., countdown = 1 → 87.5%

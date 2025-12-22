@@ -463,10 +463,21 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         log.info("Game {} starting countdown with {} questions", game.getGameId(), game.getQuestions().size());
 
+        // Tips to show during countdown
+        String[] tips = {
+            "Solve math problems faster than your opponent!",
+            "Type your answer and press Enter to submit",
+            "First to answer 20 questions correctly wins!"
+        };
+
         // Send countdown 8, 7, 6, 5, 4, 3, 2, 1 before starting game (8 seconds)
         // Game status stays READY during countdown so disconnects are treated as cancellations
         for(int i = 8; i >= 1; i--) {
-            CountdownMessage countdownMsg = new CountdownMessage(i, "Game starting in...");
+            // Rotate tips every ~3 seconds (tip 0: 8-6, tip 1: 5-3, tip 2: 2-1)
+            int tipIndex = (8 - i) / 3;
+            if(tipIndex >= tips.length) tipIndex = tips.length - 1;
+
+            CountdownMessage countdownMsg = new CountdownMessage(i, tips[tipIndex]);
             sendToAllPlayers(game, countdownMsg);
             Thread.sleep(1000);
         }
@@ -474,6 +485,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         // NOW start the game (status changes to RUNNING)
         game.startGame();
         log.info("Game {} officially started", game.getGameId());
+
+        // Reset last message time for both players since countdown doesn't send messages
+        lastMessageTime.put(player1.getPlayerId(), Instant.now());
+        lastMessageTime.put(player2.getPlayerId(), Instant.now());
 
         // Send FULL duration to clients (not remaining seconds which would be less due to countdown delay)
         long fullDuration = game.getDurationSeconds();
