@@ -167,9 +167,9 @@ export const websocket = {
     startHeartbeat() {
         this.stopHeartbeat(); // Clear any existing heartbeat
 
-        console.log('🔥 Heartbeat started - checking connection every 3 seconds');
+        console.log('🔥 Heartbeat started - checking connection and sending pings every 5 seconds');
 
-        // Check connection every 3 seconds (faster detection)
+        // Check connection and send heartbeat every 5 seconds
         heartbeatInterval = setInterval(() => {
             const socket = gameState.getSocket();
             const readyState = socket ? socket.readyState : -1;
@@ -189,11 +189,21 @@ export const websocket = {
                     }, 1500);
                 }
             }
-            // Only log alive status every 15 seconds to reduce noise
-            else if (Math.random() < 0.2) {
-                console.log('💚 Heartbeat: Connection alive');
+            else {
+                // Connection is alive - send heartbeat to server
+                // This keeps the connection alive even if player doesn't answer questions
+                try {
+                    this.send({ type: 'HEARTBEAT' });
+
+                    // Only log every ~20% of the time to reduce noise
+                    if (Math.random() < 0.2) {
+                        console.log('💚 Heartbeat: Connection alive, ping sent');
+                    }
+                } catch (error) {
+                    console.error('Error sending heartbeat:', error);
+                }
             }
-        }, 3000); // Check every 3 seconds
+        }, 5000); // Check and ping every 5 seconds
     },
 
     // Stop heartbeat

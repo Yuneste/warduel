@@ -35,13 +35,24 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
 
-    // SECURITY: Rate limiting - max 10 messages per second per player
+    // SECURITY: Rate limiting - max messages per second per player
     private static final int MAX_MESSAGES_PER_SECOND = 10;
     private final Map<String, RateLimiter> rateLimiters = new ConcurrentHashMap<>();
 
-    // Connection timeout tracking - disconnect if no message in 10 seconds
+    // Connection timeout tracking
     private static final long CONNECTION_TIMEOUT_SECONDS = 10;
+    private static final long CONNECTION_CHECK_INTERVAL_SECONDS = 3;
     private final Map<String, Instant> lastMessageTime = new ConcurrentHashMap<>();
+
+    // Game timing constants
+    private static final int COUNTDOWN_DURATION_SECONDS = 3;
+    private static final long REMATCH_DELAY_SECONDS = 1;
+
+    // Validation constants
+    private static final int MAX_ANSWER_VALUE = 1_000_000;
+
+    // Executor service constants
+    private static final int EXECUTOR_SHUTDOWN_TIMEOUT_SECONDS = 5;
 
     private static class RateLimiter {
         private final AtomicInteger messageCount = new AtomicInteger(0);
@@ -73,11 +84,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     public void cleanup() {
         scheduler.shutdown();
         try {
-            if(!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+            if(!scheduler.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
         } catch (InterruptedException e) {
             scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -106,7 +118,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             } catch (Exception e) {
                 log.error("Error in connection monitor", e);
             }
-        }, 3, 3, TimeUnit.SECONDS); // Check every 3 seconds
+        }, CONNECTION_CHECK_INTERVAL_SECONDS, CONNECTION_CHECK_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
     private void checkPlayerConnection(Player player, Instant now, GameSession game) {
@@ -148,7 +160,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
             // Wenn Spiel voll ist, starte es
             if(game.isFull()) {
-                Thread.sleep(500);
                 startGame(game);
             }
 
@@ -196,6 +207,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "FORFEIT":
                     handleForfeit(session);
                     break;
+                case "HEARTBEAT":
+                    // Just update last message time to keep connection alive
+                    // No other action needed
+                    break;
                 default:
                     log.warn("Unknown message type: {}", baseMsg.getType());
             }
@@ -208,12 +223,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     /**
      * Verarbeitet Antworten
      */
-    private void handleAnswer(WebSocketSession session, @SuppressWarnings("unused") String payload) throws IOException {
+    private void handleAnswer(WebSocketSession session, String payload) throws IOException {
         String playerId = session.getId();
         AnswerMessage answerMsg = objectMapper.readValue(payload, AnswerMessage.class);
 
         // SECURITY: Validate answer bounds to prevent extreme values
-        if(Math.abs(answerMsg.getAnswer()) > 1000000) {
+        if(Math.abs(answerMsg.getAnswer()) > MAX_ANSWER_VALUE) {
             log.warn("Answer out of bounds from player {}: {}", playerId, answerMsg.getAnswer());
             sendError(session, "Answer out of valid range");
             return;
@@ -311,8 +326,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 RematchMessage msg = new RematchMessage(true, true, "Rematch starting!");
                 sendToAllPlayers(game, msg);
 
-                Thread.sleep(1000);
-                startGame(game, false); // Skip countdown for rematch
+                // Schedule rematch start after delay (give players time to see message)
+                scheduler.schedule(() -> {
+                    try {
+                        startGame(game, false); // Skip countdown for rematch
+                    } catch (Exception e) {
+                        log.error("Error starting rematch for game {}", game.getGameId(), e);
+                    }
+                }, REMATCH_DELAY_SECONDS, TimeUnit.SECONDS);
             }
         } else {
             // Warte auf Gegner
@@ -353,7 +374,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         opponent.getDisplayName()
                 );
                 sendMessage(opponent.getSession(), opponentMsg);
-                log.info("✅ FORFEIT: Sent GAME_OVER to opponent {} - youWon=true", opponent.getPlayerId());
+                log.info("FORFEIT_OPPONENT_WINS player={} youWon=true", opponent.getPlayerId());
             }
 
             // 2. Send to forfeiting player (they lose)
@@ -369,19 +390,17 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         opponent != null ? opponent.getDisplayName() : "Opponent"
                 );
                 sendMessage(session, forfeitMsg);
-                log.info("✅ FORFEIT: Sent GAME_OVER to forfeiting player {} - youWon=false, yourScore={}, opponentScore={}",
+                log.info("FORFEIT_PLAYER_LOSES player={} youWon=false yourScore={} opponentScore={}",
                     playerId, forfeitScore, opponentScore);
             } else {
-                log.error("❌ FORFEIT: Could not send GAME_OVER to forfeiting player {} - forfeitingPlayer={}, session.isOpen={}",
+                log.error("FORFEIT_SEND_FAILED player={} forfeitingPlayerExists={} sessionOpen={}",
                     playerId, forfeitingPlayer != null, session.isOpen());
             }
 
-            // Give messages time to be delivered before any cleanup
-            Thread.sleep(500);
-            log.info("✅ FORFEIT: Completed forfeit handling for game {}", game.getGameId());
+            log.info("FORFEIT_COMPLETED game={}", game.getGameId());
 
         } catch (Exception e) {
-            log.error("❌ FORFEIT: Error sending game over messages", e);
+            log.error("FORFEIT_ERROR game={}", game.getGameId(), e);
         }
     }
 
@@ -487,14 +506,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     /**
      * Startet das Spiel
      */
-    private void startGame(GameSession game) throws IOException, InterruptedException {
+    private void startGame(GameSession game) throws IOException {
         startGame(game, true); // Default: show countdown
     }
 
     /**
      * Startet das Spiel mit optionalem Countdown
      */
-    private void startGame(GameSession game, boolean showCountdown) throws IOException, InterruptedException {
+    private void startGame(GameSession game, boolean showCountdown) throws IOException {
         Player player1 = game.getPlayer1();
         Player player2 = game.getPlayer2();
 
@@ -508,40 +527,65 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 "First to answer 20 questions correctly wins!"
             };
 
-            // Send countdown 3, 2, 1 before starting game (3 seconds)
-            // Game status stays READY during countdown so disconnects are treated as cancellations
             // Pick one random tip to show throughout countdown
-            String randomTip = tips[new java.util.Random().nextInt(tips.length)];
+            String randomTip = tips[java.util.concurrent.ThreadLocalRandom.current().nextInt(tips.length)];
 
-            for(int i = 3; i >= 1; i--) {
-                CountdownMessage countdownMsg = new CountdownMessage(i, randomTip);
-                sendToAllPlayers(game, countdownMsg);
-                Thread.sleep(1000);
+            // Send countdown messages asynchronously
+            for(int i = COUNTDOWN_DURATION_SECONDS; i >= 1; i--) {
+                final int countdown = i;
+                scheduler.schedule(() -> {
+                    try {
+                        CountdownMessage countdownMsg = new CountdownMessage(countdown, randomTip);
+                        sendToAllPlayers(game, countdownMsg);
+                    } catch (Exception e) {
+                        log.error("Error sending countdown message", e);
+                    }
+                }, (COUNTDOWN_DURATION_SECONDS - i), TimeUnit.SECONDS);
             }
+
+            // Schedule game start after countdown finishes
+            scheduler.schedule(() -> {
+                try {
+                    actuallyStartGame(game, player1, player2);
+                } catch (Exception e) {
+                    log.error("Error starting game after countdown", e);
+                }
+            }, COUNTDOWN_DURATION_SECONDS, TimeUnit.SECONDS);
+
         } else {
             log.info("Game {} starting immediately (rematch)", game.getGameId());
+            actuallyStartGame(game, player1, player2);
         }
+    }
 
-        // NOW start the game (status changes to RUNNING)
-        game.startGame();
-        log.info("Game {} officially started", game.getGameId());
+    /**
+     * Actually starts the game (called after countdown or immediately for rematch)
+     */
+    private void actuallyStartGame(GameSession game, Player player1, Player player2) {
+        try {
+            // NOW start the game (status changes to RUNNING)
+            game.startGame();
+            log.info("Game {} officially started", game.getGameId());
 
-        // Reset last message time for both players since countdown doesn't send messages
-        lastMessageTime.put(player1.getPlayerId(), Instant.now());
-        lastMessageTime.put(player2.getPlayerId(), Instant.now());
+            // Reset last message time for both players since countdown doesn't send messages
+            lastMessageTime.put(player1.getPlayerId(), Instant.now());
+            lastMessageTime.put(player2.getPlayerId(), Instant.now());
 
-        // Send FULL duration to clients (not remaining seconds which would be less due to countdown delay)
-        long fullDuration = game.getDurationSeconds();
+            // Send FULL duration to clients (not remaining seconds which would be less due to countdown delay)
+            long fullDuration = game.getDurationSeconds();
 
-        // Sende erste Frage an beide Spieler mit gleicher Zeit
-        sendNextQuestion(player1, game, fullDuration);
-        sendNextQuestion(player2, game, fullDuration);
+            // Sende erste Frage an beide Spieler mit gleicher Zeit
+            sendNextQuestion(player1, game, fullDuration);
+            sendNextQuestion(player2, game, fullDuration);
 
-        // Starte Timer
-        startGameTimer(game);
+            // Starte Timer
+            startGameTimer(game);
 
-        // Start connection monitor to detect mobile disconnects
-        startConnectionMonitor(game);
+            // Start connection monitor to detect mobile disconnects
+            startConnectionMonitor(game);
+        } catch (Exception e) {
+            log.error("Error starting game {}", game.getGameId(), e);
+        }
     }
 
     /**
@@ -670,11 +714,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      * Sendet Nachricht an alle Spieler
      */
     private void sendToAllPlayers(GameSession game, BaseMessage message) throws IOException {
-        if(game.getPlayer1() != null && game.getPlayer1().getSession().isOpen()) {
-            sendMessage(game.getPlayer1().getSession(), message);
+        Player player1 = game.getPlayer1();
+        Player player2 = game.getPlayer2();
+
+        if(player1 != null && player1.getSession() != null && player1.getSession().isOpen()) {
+            sendMessage(player1.getSession(), message);
         }
-        if(game.getPlayer2() != null && game.getPlayer2().getSession().isOpen()) {
-            sendMessage(game.getPlayer2().getSession(), message);
+        if(player2 != null && player2.getSession() != null && player2.getSession().isOpen()) {
+            sendMessage(player2.getSession(), message);
         }
     }
 
@@ -691,8 +738,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      */
     private void sendMessage(WebSocketSession session, BaseMessage message) throws IOException {
         if(session != null && session.isOpen()) {
-            String json = objectMapper.writeValueAsString(message);
-            session.sendMessage(new TextMessage(json));
+            try {
+                String json = objectMapper.writeValueAsString(message);
+                session.sendMessage(new TextMessage(json));
+            } catch (IOException e) {
+                // Session closed between isOpen() check and send - log and ignore
+                log.warn("Failed to send message to session {}: {}", session.getId(), e.getMessage());
+                throw e; // Re-throw to maintain existing error handling contract
+            }
         }
     }
 }

@@ -9,15 +9,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * SecurityConfig - Temporäre Security-Konfiguration
+ * SecurityConfig - Security configuration for MathWars game
  *
- * WICHTIG: Diese Konfiguration erlaubt aktuell alle Anfragen ohne Authentifizierung
- * um die bestehende Funktionalität nicht zu beeinträchtigen.
+ * CURRENT STATE: Permits all requests without authentication
  *
- * TODO: Morgen korrekte Authentifizierung implementieren für:
- *  - User Login/Registration
- *  - JWT Token-basierte Auth
- *  - WebSocket Security
+ * This is intentional for the current phase - the game is designed as
+ * a stateless, anonymous multiplayer experience where players can join
+ * instantly without creating accounts.
+ *
+ * FUTURE ENHANCEMENTS (when user accounts are added):
+ *  - User registration and login endpoints
+ *  - JWT token-based authentication
+ *  - WebSocket session validation
+ *  - Player statistics and leaderboards
  */
 @Configuration
 @EnableWebSecurity
