@@ -51,7 +51,10 @@ public class GameService {
         Player player = new Player(playerId, session, "");
 
         // Gibt es ein wartendes Spiel?
-        if(waitingGame != null && !waitingGame.isFull()) {
+        // CRITICAL: Skip finished/running games (only join WAITING games)
+        if(waitingGame != null &&
+           waitingGame.getStatus() == GameSession.GameStatus.WAITING &&
+           !waitingGame.isFull()) {
             // Füge Spieler zum wartenden Spiel hinzu
             boolean added = waitingGame.addPlayer(player);
 
@@ -153,6 +156,12 @@ public class GameService {
         if(game != null) {
             boolean removed = game.removePlayer(playerId);  // ← BENUTZE den Return-Wert
             playerToGame.remove(playerId);
+
+            // CRITICAL: Clear waitingGame if it's this game (prevents ghost matchmaking)
+            if(waitingGame == game) {
+                log.info("Clearing waitingGame {} after player {} removed", game.getGameId(), playerId);
+                waitingGame = null;
+            }
 
             if(removed) {
                 log.info("Player {} removed from game {}", playerId, game.getGameId());

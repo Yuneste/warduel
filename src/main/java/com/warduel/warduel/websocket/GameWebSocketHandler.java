@@ -309,11 +309,21 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private void handleRematch(WebSocketSession session) throws IOException, InterruptedException {
         String playerId = session.getId();
 
+        // CRITICAL: Check if opponent is still connected before allowing rematch
+        GameSession game = gameService.getGameByPlayerId(playerId);
+        if(game != null) {
+            Player opponent = findOpponentById(game, playerId);
+            if(opponent == null || opponent.getSession() == null || !opponent.getSession().isOpen()) {
+                log.warn("Rematch rejected - opponent disconnected");
+                sendError(session, "Opponent left");
+                return;
+            }
+        }
+
         boolean bothWantRematch = gameService.requestRematch(playerId);
 
         if(bothWantRematch) {
             // Beide wollen Rematch - starte neues Spiel
-            GameSession game = gameService.getGameByPlayerId(playerId);
             if(game != null) {
                 RematchMessage msg = new RematchMessage(true, true, "Rematch starting!");
                 sendToAllPlayers(game, msg);
