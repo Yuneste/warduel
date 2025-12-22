@@ -46,8 +46,8 @@ function handleGameState(message) {
 function handleCountdown(message) {
     console.log('⏱️ COUNTDOWN received:', message.countdown);
 
-    // Calculate progress from 0% to 100% over 8 countdown steps
-    const totalSteps = 8;
+    // Calculate progress from 0% to 100% over 3 countdown steps
+    const totalSteps = 3;
     const progress = ((totalSteps - message.countdown) / totalSteps) * 100;
 
     // Use centralized UI method
@@ -102,6 +102,9 @@ function handleGameOver(message) {
     // Reset rematch flags
     gameState.rematchRequested = false;
     gameState.opponentWantsRematch = false;
+
+    // Reset forfeit flag
+    gameState.isForfeiting = false;
 
     // Show result screen
     ui.showResult();

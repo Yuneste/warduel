@@ -22,6 +22,9 @@ export const gameActions = {
             // In a running game - send forfeit and wait for GAME_OVER response from server
             console.log('Forfeiting game - waiting for server response');
 
+            // Set forfeiting flag to prevent error messages if connection closes
+            gameState.isForfeiting = true;
+
             // Disable forfeit button to prevent multiple clicks
             const forfeitButton = document.getElementById('forfeit-button');
             if (forfeitButton) {

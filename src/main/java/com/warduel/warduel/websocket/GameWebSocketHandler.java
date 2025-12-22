@@ -342,37 +342,46 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         game.endGame();
 
         // Send game over to BOTH players
-        // 1. Send to opponent (they win)
-        if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
-            GameOverMessage opponentMsg = new GameOverMessage(
-                    opponent.getScore(),
-                    0,  // Forfeiting player gets 0
-                    true,  // Opponent wins
-                    false,  // Not a draw
-                    opponent.getDisplayName()
-            );
-            sendMessage(opponent.getSession(), opponentMsg);
-            log.info("Opponent {} wins by forfeit", opponent.getPlayerId());
-        }
+        try {
+            // 1. Send to opponent (they win)
+            if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
+                GameOverMessage opponentMsg = new GameOverMessage(
+                        opponent.getScore(),
+                        0,  // Forfeiting player gets 0
+                        true,  // Opponent wins
+                        false,  // Not a draw
+                        opponent.getDisplayName()
+                );
+                sendMessage(opponent.getSession(), opponentMsg);
+                log.info("✅ FORFEIT: Sent GAME_OVER to opponent {} - youWon=true", opponent.getPlayerId());
+            }
 
-        // 2. Send to forfeiting player (they lose)
-        if(forfeitingPlayer != null && session.isOpen()) {
-            int forfeitScore = forfeitingPlayer.getScore();
-            int opponentScore = opponent != null ? opponent.getScore() : 0;
+            // 2. Send to forfeiting player (they lose)
+            if(forfeitingPlayer != null && session.isOpen()) {
+                int forfeitScore = forfeitingPlayer.getScore();
+                int opponentScore = opponent != null ? opponent.getScore() : 0;
 
-            GameOverMessage forfeitMsg = new GameOverMessage(
-                    forfeitScore,
-                    opponentScore,
-                    false,  // Forfeiting player loses
-                    false,  // Not a draw
-                    opponent != null ? opponent.getDisplayName() : "Opponent"
-            );
-            sendMessage(session, forfeitMsg);
-            log.info("✅ FORFEIT: Sent GAME_OVER to forfeiting player {} - youWon=false, yourScore={}, opponentScore={}",
-                playerId, forfeitScore, opponentScore);
-        } else {
-            log.error("❌ FORFEIT: Could not send GAME_OVER to forfeiting player {} - forfeitingPlayer={}, session.isOpen={}",
-                playerId, forfeitingPlayer != null, session.isOpen());
+                GameOverMessage forfeitMsg = new GameOverMessage(
+                        forfeitScore,
+                        opponentScore,
+                        false,  // Forfeiting player loses
+                        false,  // Not a draw
+                        opponent != null ? opponent.getDisplayName() : "Opponent"
+                );
+                sendMessage(session, forfeitMsg);
+                log.info("✅ FORFEIT: Sent GAME_OVER to forfeiting player {} - youWon=false, yourScore={}, opponentScore={}",
+                    playerId, forfeitScore, opponentScore);
+            } else {
+                log.error("❌ FORFEIT: Could not send GAME_OVER to forfeiting player {} - forfeitingPlayer={}, session.isOpen={}",
+                    playerId, forfeitingPlayer != null, session.isOpen());
+            }
+
+            // Give messages time to be delivered before any cleanup
+            Thread.sleep(500);
+            log.info("✅ FORFEIT: Completed forfeit handling for game {}", game.getGameId());
+
+        } catch (Exception e) {
+            log.error("❌ FORFEIT: Error sending game over messages", e);
         }
     }
 
@@ -499,14 +508,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 "First to answer 20 questions correctly wins!"
             };
 
-            // Send countdown 8, 7, 6, 5, 4, 3, 2, 1 before starting game (8 seconds)
+            // Send countdown 3, 2, 1 before starting game (3 seconds)
             // Game status stays READY during countdown so disconnects are treated as cancellations
-            for(int i = 8; i >= 1; i--) {
-                // Rotate tips every ~3 seconds (tip 0: 8-6, tip 1: 5-3, tip 2: 2-1)
-                int tipIndex = (8 - i) / 3;
-                if(tipIndex >= tips.length) tipIndex = tips.length - 1;
+            // Pick one random tip to show throughout countdown
+            String randomTip = tips[new java.util.Random().nextInt(tips.length)];
 
-                CountdownMessage countdownMsg = new CountdownMessage(i, tips[tipIndex]);
+            for(int i = 3; i >= 1; i--) {
+                CountdownMessage countdownMsg = new CountdownMessage(i, randomTip);
                 sendToAllPlayers(game, countdownMsg);
                 Thread.sleep(1000);
             }

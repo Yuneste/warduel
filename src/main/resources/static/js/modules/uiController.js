@@ -81,6 +81,15 @@ export const ui = {
         const waitingText = document.getElementById('waiting-text');
         if (waitingText) waitingText.style.display = 'none';
 
+        // LOCK PLAYERS IN: Disable "Leave Queue" button once countdown starts
+        const leaveButton = document.getElementById('leave-waiting-button');
+        if (leaveButton) {
+            leaveButton.disabled = true;
+            leaveButton.textContent = 'Match Locked';
+            leaveButton.style.opacity = '0.5';
+            leaveButton.style.cursor = 'not-allowed';
+        }
+
         // Show progress bar
         const progressContainer = document.getElementById('countdown-progress-container');
         const progressFill = document.getElementById('countdown-progress-fill');
