@@ -357,15 +357,22 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         // 2. Send to forfeiting player (they lose)
         if(forfeitingPlayer != null && session.isOpen()) {
+            int forfeitScore = forfeitingPlayer.getScore();
+            int opponentScore = opponent != null ? opponent.getScore() : 0;
+
             GameOverMessage forfeitMsg = new GameOverMessage(
-                    forfeitingPlayer.getScore(),
-                    opponent != null ? opponent.getScore() : 0,
+                    forfeitScore,
+                    opponentScore,
                     false,  // Forfeiting player loses
                     false,  // Not a draw
                     opponent != null ? opponent.getDisplayName() : "Opponent"
             );
             sendMessage(session, forfeitMsg);
-            log.info("Player {} received forfeit loss", playerId);
+            log.info("✅ FORFEIT: Sent GAME_OVER to forfeiting player {} - youWon=false, yourScore={}, opponentScore={}",
+                playerId, forfeitScore, opponentScore);
+        } else {
+            log.error("❌ FORFEIT: Could not send GAME_OVER to forfeiting player {} - forfeitingPlayer={}, session.isOpen={}",
+                playerId, forfeitingPlayer != null, session.isOpen());
         }
     }
 

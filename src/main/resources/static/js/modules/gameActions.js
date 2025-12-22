@@ -18,20 +18,26 @@ export const gameActions = {
     leaveGame() {
         console.log('Leaving game...');
 
-        // Stop timer
-        gameState.stopTimer();
-        ui.stopTimerAnimation();
-
         if (gameState.currentGameState === 'RUNNING') {
             // In a running game - send forfeit and wait for GAME_OVER response from server
             console.log('Forfeiting game - waiting for server response');
+
+            // Disable forfeit button to prevent multiple clicks
+            const forfeitButton = document.getElementById('forfeit-button');
+            if (forfeitButton) {
+                forfeitButton.disabled = true;
+                forfeitButton.textContent = 'Forfeiting...';
+            }
+
             websocket.send({
                 type: 'FORFEIT'
             });
             // Server will send GAME_OVER message showing the loss
-            // Don't close connection or show lobby yet - wait for that message
+            // UI will be updated when GAME_OVER arrives - don't touch it here
         } else {
             // In queue/waiting - just leave immediately
+            gameState.stopTimer();
+            ui.stopTimerAnimation();
             websocket.close();
             gameState.reset();
             ui.showLobby();

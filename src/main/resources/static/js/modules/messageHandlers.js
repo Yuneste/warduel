@@ -91,7 +91,9 @@ function handleScoreUpdate(message) {
 }
 
 function handleGameOver(message) {
-    console.log('Game over');
+    console.log('🏁 GAME_OVER received:', message);
+    console.log('You won:', message.youWon);
+    console.log('Scores:', message.yourScore, 'vs', message.opponentScore);
 
     gameState.stopTimer();
     ui.stopTimerAnimation();
@@ -104,6 +106,8 @@ function handleGameOver(message) {
     // Show result screen
     ui.showResult();
     ui.updateGameOver(message);
+
+    console.log('Result screen should now be visible');
 }
 
 function handleRematch(message) {
