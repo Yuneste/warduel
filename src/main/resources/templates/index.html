@@ -71,7 +71,12 @@
 
     <!-- Waiting Area -->
     <div id="waiting-area" style="display: none;">
-        <p>Waiting for opponent...</p>
+        <p id="waiting-text">Waiting for opponent...</p>
+        <div id="countdown-progress-container" style="display: none;">
+            <div class="countdown-progress-bar">
+                <div id="countdown-progress-fill" class="countdown-progress-fill"></div>
+            </div>
+        </div>
         <button id="leave-waiting-button" class="btn-secondary" style="margin-top: 20px;">
             Leave Queue
         </button>

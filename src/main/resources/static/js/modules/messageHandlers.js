@@ -46,8 +46,22 @@ function handleGameState(message) {
 function handleCountdown(message) {
     console.log('⏱️ COUNTDOWN received:', message.countdown);
 
-    // Keep waiting screen visible with countdown
-    ui.updateStatus(`Starting in ${message.countdown}...`);
+    // Show progress bar container
+    const progressContainer = document.getElementById('countdown-progress-container');
+    const progressFill = document.getElementById('countdown-progress-fill');
+    const waitingText = document.getElementById('waiting-text');
+
+    if (progressContainer && progressFill && waitingText) {
+        // Show progress container
+        progressContainer.style.display = 'block';
+
+        // Update text
+        waitingText.textContent = 'Game starting...';
+
+        // Calculate progress (3 = 33%, 2 = 66%, 1 = 100%)
+        const progress = (4 - message.countdown) * 33.33;
+        progressFill.style.width = `${progress}%`;
+    }
 }
 
 function handleQuestion(message) {

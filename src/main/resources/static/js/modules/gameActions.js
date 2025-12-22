@@ -22,14 +22,23 @@ export const gameActions = {
         gameState.stopTimer();
         ui.stopTimerAnimation();
 
-        // Close WebSocket connection
-        websocket.close();
+        // Send forfeit message if in a running game
+        if (gameState.currentGameState === 'RUNNING') {
+            websocket.send({
+                type: 'FORFEIT'
+            });
+        }
 
-        // Reset state
-        gameState.reset();
+        // Close WebSocket connection after short delay to ensure message is sent
+        setTimeout(() => {
+            websocket.close();
 
-        // Show lobby
-        ui.showLobby();
+            // Reset state
+            gameState.reset();
+
+            // Show lobby
+            ui.showLobby();
+        }, 100);
     },
 
     // Request rematch

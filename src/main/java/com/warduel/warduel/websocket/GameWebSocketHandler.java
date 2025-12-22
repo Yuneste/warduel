@@ -97,6 +97,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "REMATCH":
                     handleRematch(session);
                     break;
+                case "FORFEIT":
+                    handleForfeit(session);
+                    break;
                 default:
                     log.warn("Unknown message type: {}", baseMsg.getType());
             }
@@ -197,6 +200,40 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
+     * Verarbeitet Forfeit (Spieler gibt auf)
+     */
+    private void handleForfeit(WebSocketSession session) throws IOException {
+        String playerId = session.getId();
+        log.info("Player {} forfeited the game", playerId);
+
+        GameSession game = gameService.getGameByPlayerId(playerId);
+        if(game == null || game.getStatus() != GameSession.GameStatus.RUNNING) {
+            log.warn("Cannot forfeit - game not found or not running");
+            return;
+        }
+
+        Player opponent = gameService.getOpponent(game, playerId);
+
+        // End the game
+        game.endGame();
+
+        // Send game over to opponent (they win)
+        if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
+            GameOverMessage msg = new GameOverMessage(
+                    opponent.getScore(),
+                    0,  // Forfeiting player gets 0
+                    true,  // Opponent wins
+                    false,  // Not a draw
+                    opponent.getDisplayName()
+            );
+            sendMessage(opponent.getSession(), msg);
+            log.info("Opponent {} wins by forfeit", opponent.getPlayerId());
+        }
+
+        // Note: The forfeiting player will close their own connection and see lobby
+    }
+
+    /**
      * Wird aufgerufen wenn Verbindung geschlossen wird
      */
     @Override
@@ -237,7 +274,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         log.info("Game {} ended because player {} disconnected during RUNNING (gameplay started)", game.getGameId(), playerId);
 
                         // Informiere Gegner mit Game Over
-                        if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
+                        if(opponent.getSession() != null && opponent.getSession().isOpen()) {
                             GameOverMessage msg = new GameOverMessage(
                                     opponent.getScore(),
                                     0,  // Disconnected player gets 0
