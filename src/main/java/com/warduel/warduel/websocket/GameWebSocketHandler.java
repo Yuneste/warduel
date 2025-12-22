@@ -565,6 +565,22 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      */
     private void actuallyStartGame(GameSession game, Player player1, Player player2) {
         try {
+            // CRITICAL: Check if both players are still connected before starting
+            // (prevents race condition if player disconnects during countdown)
+            if(game.getStatus() == GameSession.GameStatus.FINISHED) {
+                log.info("Game {} already finished - not starting", game.getGameId());
+                return;
+            }
+
+            boolean player1Connected = player1 != null && player1.getSession() != null && player1.getSession().isOpen();
+            boolean player2Connected = player2 != null && player2.getSession() != null && player2.getSession().isOpen();
+
+            if(!player1Connected || !player2Connected) {
+                log.warn("Game {} cannot start - player disconnected during countdown (p1={}, p2={})",
+                        game.getGameId(), player1Connected, player2Connected);
+                return;
+            }
+
             // NOW start the game (status changes to RUNNING)
             game.startGame();
             log.info("Game {} officially started", game.getGameId());
