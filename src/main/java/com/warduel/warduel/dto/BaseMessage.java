@@ -23,7 +23,8 @@ import lombok.Setter;
         @JsonSubTypes.Type(value = GameOverMessage.class, name = "GAME_OVER"),
         @JsonSubTypes.Type(value = ErrorMessage.class, name = "ERROR"),
         @JsonSubTypes.Type(value = RematchMessage.class, name = "REMATCH"),
-        @JsonSubTypes.Type(value = ForfeitMessage.class, name = "FORFEIT")
+        @JsonSubTypes.Type(value = ForfeitMessage.class, name = "FORFEIT"),
+        @JsonSubTypes.Type(value = HeartbeatMessage.class, name = "HEARTBEAT")
 })
 public abstract class BaseMessage {
 
