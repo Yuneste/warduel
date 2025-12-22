@@ -335,24 +335,38 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
 
         Player opponent = gameService.getOpponent(game, playerId);
+        Player forfeitingPlayer = (game.getPlayer1() != null && game.getPlayer1().getPlayerId().equals(playerId))
+            ? game.getPlayer1() : game.getPlayer2();
 
         // End the game
         game.endGame();
 
-        // Send game over to opponent (they win)
+        // Send game over to BOTH players
+        // 1. Send to opponent (they win)
         if(opponent != null && opponent.getSession() != null && opponent.getSession().isOpen()) {
-            GameOverMessage msg = new GameOverMessage(
+            GameOverMessage opponentMsg = new GameOverMessage(
                     opponent.getScore(),
                     0,  // Forfeiting player gets 0
                     true,  // Opponent wins
                     false,  // Not a draw
                     opponent.getDisplayName()
             );
-            sendMessage(opponent.getSession(), msg);
+            sendMessage(opponent.getSession(), opponentMsg);
             log.info("Opponent {} wins by forfeit", opponent.getPlayerId());
         }
 
-        // Note: The forfeiting player will close their own connection and see lobby
+        // 2. Send to forfeiting player (they lose)
+        if(forfeitingPlayer != null && session.isOpen()) {
+            GameOverMessage forfeitMsg = new GameOverMessage(
+                    forfeitingPlayer.getScore(),
+                    opponent != null ? opponent.getScore() : 0,
+                    false,  // Forfeiting player loses
+                    false,  // Not a draw
+                    opponent != null ? opponent.getDisplayName() : "Opponent"
+            );
+            sendMessage(session, forfeitMsg);
+            log.info("Player {} received forfeit loss", playerId);
+        }
     }
 
     /**

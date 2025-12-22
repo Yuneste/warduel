@@ -22,23 +22,20 @@ export const gameActions = {
         gameState.stopTimer();
         ui.stopTimerAnimation();
 
-        // Send forfeit message if in a running game
         if (gameState.currentGameState === 'RUNNING') {
+            // In a running game - send forfeit and wait for GAME_OVER response from server
+            console.log('Forfeiting game - waiting for server response');
             websocket.send({
                 type: 'FORFEIT'
             });
-        }
-
-        // Close WebSocket connection after short delay to ensure message is sent
-        setTimeout(() => {
+            // Server will send GAME_OVER message showing the loss
+            // Don't close connection or show lobby yet - wait for that message
+        } else {
+            // In queue/waiting - just leave immediately
             websocket.close();
-
-            // Reset state
             gameState.reset();
-
-            // Show lobby
             ui.showLobby();
-        }, 100);
+        }
     },
 
     // Request rematch

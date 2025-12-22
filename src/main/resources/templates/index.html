@@ -72,10 +72,22 @@
     <!-- Waiting Area -->
     <div id="waiting-area" style="display: none;">
         <p id="waiting-text">Waiting for opponent...</p>
+
+        <!-- Match Found Indicator -->
+        <div id="match-found-container" style="display: none;">
+            <h2 class="match-found-text">Match Found!</h2>
+            <div class="match-players">
+                <div class="player-icon">👤</div>
+                <div class="connection-line"></div>
+                <div class="player-icon">👤</div>
+            </div>
+        </div>
+
         <div id="countdown-progress-container" style="display: none;">
             <div class="countdown-progress-bar">
                 <div id="countdown-progress-fill" class="countdown-progress-fill"></div>
             </div>
+            <p id="countdown-tip" class="countdown-tip"></p>
         </div>
         <button id="leave-waiting-button" class="btn-secondary" style="margin-top: 20px;">
             Leave Queue

@@ -71,14 +71,26 @@ export const ui = {
         // Keep waiting area visible
         this.showElement(elements.waitingArea);
 
+        // Show match found indicator on first countdown message
+        const matchFoundContainer = document.getElementById('match-found-container');
+        if (progress === 0 && matchFoundContainer) {
+            matchFoundContainer.style.display = 'block';
+        }
+
+        // Hide "Waiting for opponent..." text
+        const waitingText = document.getElementById('waiting-text');
+        if (waitingText) waitingText.style.display = 'none';
+
         // Show progress bar
         const progressContainer = document.getElementById('countdown-progress-container');
         const progressFill = document.getElementById('countdown-progress-fill');
-        const waitingText = document.getElementById('waiting-text');
 
         if (progressContainer) progressContainer.style.display = 'block';
         if (progressFill) progressFill.style.width = `${progress}%`;
-        if (waitingText) waitingText.textContent = tipText || 'Game starting...';
+
+        // Update tip text in progress container area (we'll add it)
+        const tipDisplay = document.getElementById('countdown-tip');
+        if (tipDisplay) tipDisplay.textContent = tipText || 'Game starting...';
     },
 
     // Update to game screen
