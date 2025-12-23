@@ -28,8 +28,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
-    padding-bottom: 80px; /* Extra space for fixed footer */
+    padding: 20px 20px 80px 20px; /* Extra bottom padding for fixed footer */
     overflow-x: hidden;
 }
 
@@ -462,7 +461,7 @@ body {
     color: var(--teal);
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     margin-bottom: 10px;
     position: relative;
     z-index: 1;
@@ -539,7 +538,7 @@ body {
 /* Pointing Hand Animation */
 .pointing-hand {
     position: absolute;
-    right: -80px;
+    right: 70px;
     top: 50%;
     transform: translateY(-50%) rotate(-45deg) scale(0);
     font-size: 3rem;
@@ -625,7 +624,7 @@ body {
 .countdown-tip {
     margin-top: 15px;
     font-size: 1.1rem;
-    color: var(--text-primary);
+    color: var(--dark);
     font-weight: 500;
     text-align: center;
 }
@@ -787,7 +786,7 @@ body {
     margin-bottom: 8px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
 }
 
 .timer-value {
@@ -816,7 +815,7 @@ body {
     color: var(--teal);
     margin-bottom: 15px;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     font-weight: 700;
 }
 
@@ -1436,7 +1435,7 @@ footer a:focus {
 }
 
 /* High Contrast Mode Support */
-@media (prefers-contrast: high) {
+@media (prefers-contrast: more) {
     *:focus {
         outline-width: 4px;
         outline-offset: 4px;
