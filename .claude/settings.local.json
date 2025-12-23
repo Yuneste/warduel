@@ -6,7 +6,8 @@
       "Bash(./mvnw test:*)",
       "Skill(frontend-design)",
       "Bash(./mvnw clean compile:*)",
-      "Bash(./mvnw compile:*)"
+      "Bash(./mvnw compile:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

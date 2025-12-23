@@ -21,21 +21,120 @@
 
 body {
     font-family: 'Manrope', sans-serif;
-    background: linear-gradient(135deg, #FFE66D 0%, #FF6B6B 50%, #4ECDC4 100%);
-    background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
+    background: linear-gradient(180deg, #87CEEB 0%, #B0E0F6 100%);
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px 20px 80px 20px; /* Extra bottom padding for fixed footer */
-    overflow-x: hidden;
+    overflow: hidden;
+    position: relative;
 }
 
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+/* Floating Math Container - Hover Target */
+.floating-math-container {
+    position: fixed;
+    width: 200px;
+    height: 200px;
+    pointer-events: auto;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Floating Math Element - Visual Appearance */
+.floating-math {
+    display: inline-block;
+    font-size: 7.5rem;
+    opacity: 0.35;
+    font-weight: bold;
+    filter: blur(1.5px) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    text-shadow:
+        2px 2px 4px rgba(0, 0, 0, 0.2),
+        -1px -1px 3px rgba(255, 255, 255, 0.3),
+        0 0 20px rgba(0, 0, 0, 0.15);
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    transition: transform 0.3s ease-out, filter 0.2s ease;
+}
+
+/* Hide floating elements outside of lobby */
+body:has(#game-area[style*="display: block"]) .floating-math-container,
+body:has(#result-area[style*="display: block"]) .floating-math-container,
+body:has(#waiting-area[style*="display: block"]) .floating-math-container {
+    display: none;
+}
+
+/* Container Positions and Animations */
+.floating-math-container[data-index="1"] { left: 10%; top: 15%; }
+.floating-math-container[data-index="2"] { left: 20%; top: 60%; }
+.floating-math-container[data-index="3"] { left: 70%; top: 25%; }
+.floating-math-container[data-index="4"] { left: 80%; top: 70%; }
+.floating-math-container[data-index="5"] { left: 15%; top: 80%; }
+.floating-math-container[data-index="6"] { left: 85%; top: 40%; }
+.floating-math-container[data-index="7"] { left: 5%; top: 45%; }
+.floating-math-container[data-index="8"] { left: 90%; top: 10%; }
+.floating-math-container[data-index="9"] { left: 45%; top: 5%; }
+.floating-math-container[data-index="10"] { left: 50%; top: 85%; }
+.floating-math-container[data-index="11"] { left: 30%; top: 20%; }
+.floating-math-container[data-index="12"] { left: 65%; top: 55%; }
+.floating-math-container[data-index="13"] { left: 75%; top: 15%; }
+.floating-math-container[data-index="14"] { left: 25%; top: 35%; }
+.floating-math-container[data-index="15"] { left: 55%; top: 65%; }
+
+/* Animations Applied to Inner Elements */
+.floating-math-container[data-index="1"] .floating-math { animation: float1 20s infinite; color: #FF6B6B; }
+.floating-math-container[data-index="2"] .floating-math { animation: float2 18s infinite; color: #FFA500; }
+.floating-math-container[data-index="3"] .floating-math { animation: float3 22s infinite; color: #DC143C; }
+.floating-math-container[data-index="4"] .floating-math { animation: float1 25s infinite; color: #2E8B57; }
+.floating-math-container[data-index="5"] .floating-math { animation: float2 19s infinite; color: #FF8C00; }
+.floating-math-container[data-index="6"] .floating-math { animation: float3 21s infinite; color: #8B7AB8; }
+.floating-math-container[data-index="7"] .floating-math { animation: float1 23s infinite; color: #4169E1; }
+.floating-math-container[data-index="8"] .floating-math { animation: float2 17s infinite; color: #FF1493; }
+.floating-math-container[data-index="9"] .floating-math { animation: float3 24s infinite; color: #FFB347; }
+.floating-math-container[data-index="10"] .floating-math { animation: float1 20s infinite; color: #20B2AA; }
+.floating-math-container[data-index="11"] .floating-math { animation: float2 26s infinite; color: #9370DB; }
+.floating-math-container[data-index="12"] .floating-math { animation: float3 19s infinite; color: #FF4500; }
+.floating-math-container[data-index="13"] .floating-math { animation: float1 21s infinite; color: #3CB371; }
+.floating-math-container[data-index="14"] .floating-math { animation: float2 23s infinite; color: #FF7F50; }
+.floating-math-container[data-index="15"] .floating-math { animation: float3 27s infinite; color: #191970; }
+
+/* Hover Push Effects - Container Hovers, Inner Element Moves */
+.floating-math-container[data-index="1"]:hover .floating-math { transform: translate(-180px, -160px) rotate(-20deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="2"]:hover .floating-math { transform: translate(190px, -150px) rotate(25deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="3"]:hover .floating-math { transform: translate(-170px, 180px) rotate(30deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="4"]:hover .floating-math { transform: translate(175px, 185px) rotate(-18deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="5"]:hover .floating-math { transform: translate(-165px, -190px) rotate(22deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="6"]:hover .floating-math { transform: translate(200px, 160px) rotate(-28deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="7"]:hover .floating-math { transform: translate(-195px, 170px) rotate(18deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="8"]:hover .floating-math { transform: translate(160px, -185px) rotate(-24deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="9"]:hover .floating-math { transform: translate(-180px, 195px) rotate(26deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="10"]:hover .floating-math { transform: translate(185px, -170px) rotate(-22deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="11"]:hover .floating-math { transform: translate(-175px, 175px) rotate(24deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="12"]:hover .floating-math { transform: translate(190px, 165px) rotate(-26deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="13"]:hover .floating-math { transform: translate(-200px, -175px) rotate(20deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="14"]:hover .floating-math { transform: translate(170px, 200px) rotate(-23deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+.floating-math-container[data-index="15"]:hover .floating-math { transform: translate(-185px, -180px) rotate(27deg); filter: blur(0px) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)); }
+
+@keyframes float1 {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-30px) rotate(5deg); }
+    50% { transform: translateY(-60px) rotate(-5deg); }
+    75% { transform: translateY(-30px) rotate(3deg); }
+}
+
+@keyframes float2 {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(-40px) rotate(-7deg); }
+    66% { transform: translateY(-20px) rotate(7deg); }
+}
+
+@keyframes float3 {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-50px) rotate(-10deg); }
 }
 
 .container {
@@ -47,6 +146,7 @@ body {
     box-shadow: var(--shadow-lg);
     position: relative;
     overflow: hidden;
+    z-index: 10;
 }
 
 .container::before {
@@ -538,9 +638,9 @@ body {
 /* Pointing Hand Animation */
 .pointing-hand {
     position: absolute;
-    right: 70px;
-    top: 50%;
-    transform: translateY(-50%) rotate(-45deg) scale(0);
+    left: 20px;
+    top: -80px;
+    transform: rotate(135deg) scale(0);
     font-size: 3rem;
     opacity: 0;
     pointer-events: none;
@@ -554,24 +654,24 @@ body {
 
 @keyframes pointAnimation {
     0% {
-        transform: translateY(-50%) rotate(-45deg) scale(0);
+        transform: rotate(135deg) scale(0);
         opacity: 0;
-        right: -80px;
+        top: -60px;
     }
     15% {
-        transform: translateY(-50%) rotate(-25deg) scale(1);
+        transform: rotate(120deg) scale(1);
         opacity: 1;
-        right: -70px;
+        top: -40px;
     }
     85% {
-        transform: translateY(-50%) rotate(-25deg) scale(1);
+        transform: rotate(120deg) scale(1);
         opacity: 1;
-        right: -70px;
+        top: -40px;
     }
     100% {
-        transform: translateY(-50%) rotate(-45deg) scale(0);
+        transform: rotate(135deg) scale(0);
         opacity: 0;
-        right: -80px;
+        top: -60px;
     }
 }
 
@@ -1197,7 +1297,8 @@ body {
     .pen {
         width: 4px;
         height: 30px;
-        bottom: 15px;
+        right: 17px;
+        bottom: -20px;
         background: linear-gradient(to bottom, #4A90E2 0%, #2C5F8D 50%, #1E3A5F 100%);
     }
 
@@ -1238,7 +1339,8 @@ body {
 
     .pointing-hand {
         font-size: 2.5rem;
-        right: -70px;
+        left: 15px;
+        top: -60px;
     }
 
     .score-container {
