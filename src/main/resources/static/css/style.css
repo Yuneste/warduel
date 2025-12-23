@@ -1315,3 +1315,146 @@ body {
         margin-bottom: 25px;
     }
 }
+
+/* ===========================
+   ACCESSIBILITY STYLES
+   =========================== */
+
+/* Skip Navigation Link */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #00ff88;
+    color: #1a1a2e;
+    padding: 8px 16px;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 0 0 8px 0;
+    z-index: 10000;
+    transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+    top: 0;
+    outline: 3px solid #ff6b35;
+    outline-offset: 2px;
+}
+
+/* Keyboard Focus Indicators */
+*:focus {
+    outline: 3px solid #00ff88;
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* Button Focus States */
+button:focus {
+    outline: 3px solid #00ff88;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px rgba(0, 255, 136, 0.2);
+}
+
+button:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+}
+
+button:focus-visible {
+    outline: 3px solid #00ff88;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px rgba(0, 255, 136, 0.2);
+}
+
+/* Link Focus States */
+a:focus {
+    outline: 3px solid #00ff88;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+a:focus:not(:focus-visible) {
+    outline: none;
+}
+
+a:focus-visible {
+    outline: 3px solid #00ff88;
+    outline-offset: 2px;
+}
+
+/* Number Pad Button Focus */
+.number-btn:focus {
+    outline: 3px solid #00ff88;
+    outline-offset: 2px;
+    transform: scale(1.08);
+    box-shadow: 0 8px 25px rgba(0, 255, 136, 0.3);
+}
+
+/* Submit Button Focus */
+.submit-btn:focus {
+    outline: 3px solid #FFD700;
+    box-shadow: 0 8px 30px rgba(255, 215, 0, 0.4);
+}
+
+/* Primary Button Focus */
+.btn-primary:focus {
+    outline: 3px solid #00ff88;
+    box-shadow: 0 8px 30px rgba(0, 255, 136, 0.4);
+}
+
+/* Secondary Button Focus */
+.btn-secondary:focus {
+    outline: 3px solid #00ff88;
+    box-shadow: 0 8px 30px rgba(0, 255, 136, 0.3);
+}
+
+/* Danger Button Focus */
+.btn-danger:focus {
+    outline: 3px solid #ff6b35;
+    box-shadow: 0 8px 30px rgba(255, 107, 53, 0.4);
+}
+
+/* Ensure footer links are accessible */
+footer a:focus {
+    background: rgba(0, 255, 136, 0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* Screen Reader Only Text (if needed in future) */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    *:focus {
+        outline-width: 4px;
+        outline-offset: 4px;
+    }
+
+    button:focus {
+        outline-width: 4px;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .skip-link {
+        transition: none;
+    }
+}

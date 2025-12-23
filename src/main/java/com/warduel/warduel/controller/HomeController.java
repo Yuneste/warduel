@@ -16,4 +16,20 @@ public class HomeController {
     public String index() {
         return "index"; // Gibt templates/index.html zurück
     }
+
+    /**
+     * Zeigt die Impressum-Seite (Legal Notice)
+     */
+    @GetMapping("/impressum")
+    public String impressum() {
+        return "impressum";
+    }
+
+    /**
+     * Zeigt die Datenschutzerklärung (Privacy Policy)
+     */
+    @GetMapping("/datenschutz")
+    public String datenschutz() {
+        return "datenschutz";
+    }
 }
