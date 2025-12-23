@@ -29,6 +29,7 @@ body {
     justify-content: center;
     align-items: center;
     padding: 20px;
+    padding-bottom: 80px; /* Extra space for fixed footer */
     overflow-x: hidden;
 }
 
@@ -264,8 +265,8 @@ body {
     height: 38px;
     background: linear-gradient(to bottom, #4A90E2 0%, #2C5F8D 50%, #1E3A5F 100%);
     border-radius: 2px 2px 0 0;
-    bottom: 20px;
-    right: -18px;
+    bottom: -25px;
+    right: 22px;
     transform: rotate(40deg);
     transition: transform 0.3s ease;
 }
