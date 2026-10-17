@@ -62,6 +62,12 @@ public class GameConfiguration {
     private int divisionMax = 10;
 
     /**
+     * Challenge type for public matchmaking (CLASSIC, TRUE_FALSE, MISSING_NUMBER, COMPARE);
+     * empty means a random type per game
+     */
+    private String publicChallengeType = "";
+
+    /**
      * Prüft ob vorzeitiger Sieg aktiviert ist
      */
     public boolean hasWinScore() {

@@ -20,7 +20,7 @@ export const gameState = {
     // Who we are and how we want to join (sent as JOIN_GAME once connected)
     playerName: '',
     inviteCode: inviteCode ? inviteCode.trim().toUpperCase() : null,
-    joinRequest: { createRoom: false, roomCode: null },
+    joinRequest: { createRoom: false, roomCode: null, challengeType: null },
     yourName: 'You',
     opponentName: 'Opponent',
 
@@ -36,6 +36,11 @@ export const gameState = {
     // Rematch
     rematchRequested: false,
     opponentGone: false, // the opponent left; rematch is impossible
+
+    // Current challenge and question
+    challengeType: 'CLASSIC',
+    questionFormat: 'NUMBER', // NUMBER, TRUE_FALSE or CHOICE
+    chosenButton: null,       // the choice button picked for the current question
 
     // Input
     currentAnswer: '',

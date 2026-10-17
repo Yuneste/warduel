@@ -19,6 +19,9 @@ export const elements = {
     inviteBanner: byId('invite-banner'),
     joinInviteButton: byId('join-invite-button'),
     friendButton: byId('friend-button'),
+    friendOptions: byId('friend-options'),
+    createRoomButton: byId('create-room-button'),
+    friendBackButton: byId('friend-back-button'),
 
     // Queue, private room and countdown
     queueState: byId('queue-state'),
@@ -31,6 +34,7 @@ export const elements = {
     matchupYou: byId('matchup-you'),
     matchupThem: byId('matchup-them'),
     countdownState: byId('countdown-state'),
+    countdownMode: byId('countdown-mode'),
     countdownNumber: byId('countdown-number'),
     countdownTip: byId('countdown-tip'),
 
@@ -39,6 +43,11 @@ export const elements = {
     hudThemName: byId('hud-them-name'),
     questionText: byId('question-text'),
     questionNumber: byId('question-number'),
+    questionPrompt: byId('question-prompt'),
+    choicePad: byId('choice-pad'),
+    choiceLeft: byId('choice-left'),
+    choiceRight: byId('choice-right'),
+    numberPad: byId('number-pad'),
     timer: byId('timer'),
     yourTally: byId('your-tally'),
     opponentTally: byId('opponent-tally'),

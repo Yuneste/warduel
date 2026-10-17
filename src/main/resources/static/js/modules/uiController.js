@@ -5,6 +5,7 @@
 
 import { elements } from './domElements.js';
 import { gameState } from './gameState.js';
+import { modeInfo } from './modes.js';
 
 const SCREENS = ['lobbyArea', 'waitingArea', 'gameArea', 'resultArea'];
 const URGENT_SECONDS = 5;
@@ -88,6 +89,7 @@ export const ui = {
         elements.joinInviteButton.hidden = !invited;
         elements.playButton.hidden = invited;
         elements.friendButton.textContent = invited ? 'Find a random opponent instead' : 'Play a friend instead';
+        this.showFriendOptions(false);
         this.setLobbyBusy(false);
         this.setNames('You', 'Opponent');
         this.resetGameBoard();
@@ -95,7 +97,29 @@ export const ui = {
 
     // While connecting, the lobby buttons must not start a second connection
     setLobbyBusy(busy) {
-        [elements.playButton, elements.joinInviteButton, elements.friendButton].forEach(b => { b.disabled = busy; });
+        [elements.playButton, elements.joinInviteButton, elements.friendButton, elements.createRoomButton]
+            .forEach(b => { b.disabled = busy; });
+    },
+
+    // "Play a friend": swap the lobby buttons for the challenge picker
+    showFriendOptions(show) {
+        elements.friendOptions.hidden = !show;
+        elements.friendButton.hidden = show;
+        elements.playButton.hidden = show || Boolean(gameState.inviteCode);
+        if (show) document.querySelector('input[name="mode"]:checked').focus();
+    },
+
+    selectedMode() {
+        return document.querySelector('input[name="mode"]:checked').value || null;
+    },
+
+    // Announce the challenge type during the countdown
+    setChallenge(type) {
+        gameState.challengeType = type || 'CLASSIC';
+        const info = modeInfo(gameState.challengeType);
+        elements.countdownMode.textContent = info.name;
+        const showKeys = info.keys && window.matchMedia('(hover: hover)').matches;
+        elements.countdownTip.textContent = showKeys ? `${info.rule} ${info.keys}` : info.rule;
     },
 
     // mode: 'queue' (public matchmaking) or 'room' (waiting for an invited friend)
@@ -131,7 +155,7 @@ export const ui = {
         [elements.matchupThem, elements.hudThemName, elements.finalThemName].forEach(el => { el.textContent = them; });
     },
 
-    showCountdown(seconds, tipText) {
+    showCountdown(seconds) {
         this.showScreen('waitingArea');
         elements.queueState.hidden = true;
         elements.countdownState.hidden = false;
@@ -141,7 +165,6 @@ export const ui = {
         number.style.animation = 'none';
         void number.offsetWidth;
         number.style.animation = '';
-        if (tipText) elements.countdownTip.textContent = tipText;
     },
 
     showGame() {
@@ -160,12 +183,44 @@ export const ui = {
         this.resetForfeitButton();
     },
 
-    updateQuestion(questionText, questionNumber) {
-        elements.questionNumber.textContent = `Question ${questionNumber} of ${gameState.config.questionsPerGame}`;
-        elements.questionText.textContent = questionText;
+    updateQuestion(message) {
+        const format = message.format || 'NUMBER';
+        elements.questionNumber.textContent = `Question ${message.questionNumber} of ${gameState.config.questionsPerGame}`;
+        elements.questionText.textContent = message.questionText;
+        gameState.questionFormat = format;
         gameState.currentAnswer = '';
         gameState.awaitingResult = false;
+        gameState.chosenButton = null;
         this.updateAnswerDisplay('');
+
+        const isChoice = format !== 'NUMBER';
+        elements.gameArea.classList.toggle('is-choice', isChoice);
+        elements.numberPad.hidden = isChoice;
+        elements.choicePad.hidden = !isChoice;
+        elements.questionPrompt.hidden = !isChoice;
+        if (format === 'TRUE_FALSE') {
+            elements.questionPrompt.textContent = 'True or false?';
+            this.setChoice(elements.choiceLeft, 'True', 1, 'tf-true', '✓');
+            this.setChoice(elements.choiceRight, 'False', 0, 'tf-false', '✗');
+        } else if (format === 'CHOICE') {
+            elements.questionPrompt.textContent = 'Which is bigger?';
+            this.setChoice(elements.choiceLeft, message.options[0], 0);
+            this.setChoice(elements.choiceRight, message.options[1], 1);
+        }
+    },
+
+    setChoice(button, label, value, variant = '', mark = '') {
+        button.className = `choice chalk ${variant}`.trim();
+        button.dataset.value = String(value);
+        button.replaceChildren();
+        if (mark) {
+            const markEl = document.createElement('span');
+            markEl.className = 'choice-mark';
+            markEl.setAttribute('aria-hidden', 'true');
+            markEl.textContent = mark;
+            button.append(markEl);
+        }
+        button.append(label);
     },
 
     updateScores(yourScore, opponentScore) {
@@ -175,6 +230,10 @@ export const ui = {
 
     // Mark the submitted answer as right or wrong until the next question arrives
     showAnswerFeedback(wasCorrect) {
+        if (gameState.questionFormat !== 'NUMBER' && gameState.chosenButton) {
+            gameState.chosenButton.classList.add(wasCorrect ? 'is-correct' : 'is-wrong');
+            return;
+        }
         const answer = elements.answerDisplay;
         answer.classList.remove('is-correct', 'is-wrong');
         void answer.offsetWidth; // restart the animation for repeated wrong answers
@@ -198,7 +257,7 @@ export const ui = {
 
     // Light up the on-screen key that matches a physical key press
     flashKey(key) {
-        const button = [...elements.keys].find(k => k.dataset.key === key);
+        const button = key instanceof HTMLElement ? key : [...elements.keys].find(k => k.dataset.key === key);
         if (!button) return;
         button.classList.add('is-pressed');
         setTimeout(() => button.classList.remove('is-pressed'), 120);

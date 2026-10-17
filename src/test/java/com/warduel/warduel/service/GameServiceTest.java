@@ -129,6 +129,20 @@ class GameServiceTest {
     }
 
     @Test
+    void publicChallengeTypeCanBePinned() {
+        GameConfiguration config = new GameConfiguration();
+        config.setPublicChallengeType("compare");
+        GameService pinned = new GameService(new QuestionGeneratorService(config), config);
+
+        pinned.joinGame(session("a"));
+        GameSession game = pinned.joinGame(session("b"));
+
+        assertThat(game.getChallengeType()).isEqualTo(com.warduel.warduel.model.ChallengeType.COMPARE);
+        assertThat(game.getPlayer1().getQuestions()).allSatisfy(q ->
+                assertThat(q.getFormat()).isEqualTo(com.warduel.warduel.model.Question.AnswerFormat.CHOICE));
+    }
+
+    @Test
     void findsTheOpponent() {
         GameSession game = join("a", "b");
 

@@ -17,9 +17,17 @@ export const inputHandler = {
             animations.addHapticFeedback(button);
             button.addEventListener('click', () => this.handleKey(button.dataset.key));
         });
+        [elements.choiceLeft, elements.choiceRight].forEach(button => {
+            animations.addHapticFeedback(button);
+            button.addEventListener('click', () => this.submitChoice(button));
+        });
 
         document.addEventListener('keydown', event => {
             if (elements.gameArea.hidden || event.ctrlKey || event.metaKey || event.altKey) return;
+            if (gameState.questionFormat !== 'NUMBER') {
+                this.handleChoiceKey(event);
+                return;
+            }
             const key = this.normalizeKey(event.key);
             if (!key) return;
             // Enter on a focused button (e.g. tabbed to "7") activates that button as usual
@@ -32,6 +40,33 @@ export const inputHandler = {
             ui.flashKey(key === 'Escape' ? 'Backspace' : key);
             this.handleKey(key);
         });
+    },
+
+    // True/false and "which is bigger": arrows or 1/2 pick a side, T/F (or Y/N) answer true/false
+    handleChoiceKey(event) {
+        if (event.key === 'Enter' && event.target.closest('button')) return;
+        const key = event.key.toLowerCase();
+        let button = null;
+        if (key === 'arrowleft' || key === '1') button = elements.choiceLeft;
+        if (key === 'arrowright' || key === '2') button = elements.choiceRight;
+        if (gameState.questionFormat === 'TRUE_FALSE') {
+            if (key === 't' || key === 'y') button = elements.choiceLeft;
+            if (key === 'f' || key === 'n') button = elements.choiceRight;
+        }
+        if (!button) return;
+        event.preventDefault();
+        if (document.activeElement && document.activeElement.classList.contains('choice')) {
+            document.activeElement.blur(); // no leftover focus ring from an earlier tap
+        }
+        ui.flashKey(button);
+        this.submitChoice(button);
+    },
+
+    submitChoice(button) {
+        if (gameState.awaitingResult) return;
+        gameState.awaitingResult = true;
+        gameState.chosenButton = button;
+        websocket.send({ type: 'ANSWER', answer: Number(button.dataset.value) });
     },
 
     // Map physical keys to pad keys (numpad and minus variants included)

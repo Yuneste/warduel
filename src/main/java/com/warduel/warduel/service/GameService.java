@@ -1,6 +1,7 @@
 package com.warduel.warduel.service;
 
 import com.warduel.warduel.config.GameConfiguration;
+import com.warduel.warduel.model.ChallengeType;
 import com.warduel.warduel.model.GameSession;
 import com.warduel.warduel.model.Player;
 import com.warduel.warduel.model.PlayerNames;
@@ -89,7 +90,10 @@ public class GameService {
         }
 
         // Erstelle neues Spiel und setze es als wartendes Spiel
+        // Public games get a random challenge type so the queue never splits by preference
         GameSession newGame = new GameSession();
+        ChallengeType fixed = ChallengeType.parse(gameConfig.getPublicChallengeType());
+        newGame.setChallengeType(fixed != null ? fixed : ChallengeType.random());
         newGame.addPlayer(player);
 
         playerToGame.put(playerId, newGame);
@@ -104,6 +108,13 @@ public class GameService {
      * Opens a private game that only the friend with the room code can join
      */
     public synchronized GameSession createPrivateGame(WebSocketSession session, String playerName) {
+        return createPrivateGame(session, playerName, null);
+    }
+
+    /**
+     * @param challengeType the host's choice, or null for a random one
+     */
+    public synchronized GameSession createPrivateGame(WebSocketSession session, String playerName, ChallengeType challengeType) {
         String playerId = session.getId();
         if(playerToGame.containsKey(playerId)) {
             return playerToGame.get(playerId);
@@ -120,6 +131,7 @@ public class GameService {
 
         GameSession game = new GameSession();
         game.setRoomCode(code);
+        game.setChallengeType(challengeType != null ? challengeType : ChallengeType.random());
         game.addPlayer(new Player(playerId, session, PlayerNames.sanitize(playerName)));
         privateRooms.put(code, game);
         playerToGame.put(playerId, game);
@@ -158,8 +170,8 @@ public class GameService {
         game.setDurationSeconds(gameConfig.getDurationSeconds());
 
         // Generiere ZWEI verschiedene Fragenlisten
-        List<Question> questionsP1 = questionGenerator.generateQuestions(gameConfig.getQuestionsPerGame());
-        List<Question> questionsP2 = questionGenerator.generateQuestions(gameConfig.getQuestionsPerGame());
+        List<Question> questionsP1 = questionGenerator.generateQuestions(game.getChallengeType(), gameConfig.getQuestionsPerGame());
+        List<Question> questionsP2 = questionGenerator.generateQuestions(game.getChallengeType(), gameConfig.getQuestionsPerGame());
 
         // Gib jedem Spieler seine eigenen Fragen
         game.getPlayer1().setQuestions(questionsP1);

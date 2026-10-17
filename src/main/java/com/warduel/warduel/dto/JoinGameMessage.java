@@ -21,6 +21,7 @@ public class JoinGameMessage extends BaseMessage {
     private String playerName;
     private boolean createRoom;
     private String roomCode;
+    private String challengeType; // private games only: CLASSIC, TRUE_FALSE, MISSING_NUMBER, COMPARE; empty = random
 
     public JoinGameMessage() {
         super();

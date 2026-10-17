@@ -48,6 +48,9 @@ public class GameSession {
     // Code of a private game shared by link; null for public matchmaking
     private volatile String roomCode;
 
+    // Kind of problems for this game (kept for rematches)
+    private volatile ChallengeType challengeType = ChallengeType.CLASSIC;
+
     // Zeit-Tracking (volatile für Thread-Sicherheit)
     private volatile LocalDateTime startTime;
     private volatile LocalDateTime endTime;

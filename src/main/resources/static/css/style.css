@@ -675,6 +675,124 @@ a {
     gap: 10px;
 }
 
+/* True/false and "which is bigger" answers: two big chalk-outlined buttons */
+.choice-pad {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.choice {
+    min-height: 132px;
+    padding: var(--space-3);
+    border: 3px solid var(--chalk-line);
+    border-radius: var(--radius-hand);
+    background: transparent;
+    font-size: clamp(30px, 9vw, 44px);
+    line-height: 1.1;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color 90ms, border-color 90ms, transform 90ms;
+}
+
+.choice:hover {
+    border-color: var(--chalk);
+}
+
+.choice:active,
+.choice.is-pressed {
+    background: rgba(238, 240, 232, 0.16);
+    border-color: var(--chalk);
+    transform: scale(0.97);
+}
+
+.choice .choice-mark {
+    display: block;
+    font-size: 0.8em;
+}
+
+.choice.tf-true .choice-mark {
+    color: var(--good);
+}
+
+.choice.tf-false .choice-mark {
+    color: var(--them);
+}
+
+.choice.is-correct {
+    border-color: var(--good);
+    background: rgba(168, 230, 161, 0.16);
+    color: var(--good);
+}
+
+.choice.is-wrong {
+    border-color: var(--them);
+    background: rgba(243, 161, 181, 0.12);
+    animation: shake 300ms;
+}
+
+.question-prompt {
+    margin-top: var(--space-1);
+    color: var(--you);
+    font-weight: 600;
+}
+
+.game.is-choice .answer {
+    display: none;
+}
+
+/* Lobby: choose the challenge type for a private game */
+.friend-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+.mode-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.mode-chip input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.mode-chip span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-4);
+    border: 2px solid var(--chalk-line);
+    border-radius: var(--radius-hand);
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.mode-chip input:checked + span {
+    border-color: var(--you);
+    background: var(--you);
+    color: var(--board);
+    font-weight: 700;
+}
+
+.mode-chip input:focus-visible + span {
+    outline: 3px dashed var(--you);
+    outline-offset: 3px;
+}
+
+.countdown-mode {
+    font-size: 34px;
+    line-height: 1.1;
+    color: var(--you);
+}
+
 .key {
     display: grid;
     place-items: center;

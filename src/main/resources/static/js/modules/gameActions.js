@@ -32,7 +32,7 @@ export const gameActions = {
         connectWith({ createRoom: false, roomCode: null });
     },
 
-    // Private game: the server answers with a room code that becomes the invite link
+    // "Play a friend": first pick the challenge type
     playFriend() {
         if (gameState.inviteCode) {
             // On an invite page this button offers the public queue instead
@@ -40,7 +40,17 @@ export const gameActions = {
             this.startGame();
             return;
         }
-        connectWith({ createRoom: true, roomCode: null });
+        ui.showFriendOptions(true);
+    },
+
+    closeFriendOptions() {
+        ui.showFriendOptions(false);
+        elements.friendButton.focus();
+    },
+
+    // Private game: the server answers with a room code that becomes the invite link
+    createRoom() {
+        connectWith({ createRoom: true, roomCode: null, challengeType: ui.selectedMode() });
     },
 
     joinInvite() {

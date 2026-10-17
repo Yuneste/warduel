@@ -23,6 +23,8 @@ function setupButtons() {
         [elements.playButton, () => gameActions.startGame()],
         [elements.joinInviteButton, () => gameActions.joinInvite()],
         [elements.friendButton, () => gameActions.playFriend()],
+        [elements.createRoomButton, () => gameActions.createRoom()],
+        [elements.friendBackButton, () => gameActions.closeFriendOptions()],
         [elements.leaveWaitingButton, () => gameActions.leaveQueue()],
         [elements.leaveRoomButton, () => gameActions.leaveQueue()],
         [elements.copyLinkButton, () => gameActions.copyLink()],

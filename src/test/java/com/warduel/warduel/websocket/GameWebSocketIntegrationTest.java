@@ -214,6 +214,71 @@ class GameWebSocketIntegrationTest {
         return connect(null);
     }
 
+    /** Host opens a private game of the given challenge type and a friend joins it */
+    private TestPlayer[] privateGame(String challengeType) throws Exception {
+        TestPlayer host = connectOnly();
+        host.send(Map.of("type", "JOIN_GAME", "createRoom", true, "challengeType", challengeType));
+        String code = host.next("ROOM_CREATED").get("roomCode").asText();
+        TestPlayer friend = connectOnly();
+        friend.send(Map.of("type", "JOIN_GAME", "roomCode", code));
+        return new TestPlayer[] {host, friend};
+    }
+
+    // ---------- Challenge types ----------
+
+    @Test
+    void trueOrFalseGameAsksStatementsAndScoresTrueFalseAnswers() throws Exception {
+        TestPlayer[] pair = privateGame("TRUE_FALSE");
+        TestPlayer a = pair[0];
+        assertThat(a.next("GAME_STATE").get("challengeType").asText()).isEqualTo("TRUE_FALSE");
+
+        JsonNode q = a.next("QUESTION", m -> true, Duration.ofSeconds(5));
+        assertThat(q.get("format").asText()).isEqualTo("TRUE_FALSE");
+        assertThat(q.get("questionText").asText()).matches("\\d+ [-+×÷] \\d+ = \\d+");
+        assertThat(a.answerCurrentCorrectly().get("wasCorrect").asBoolean()).isTrue();
+
+        JsonNode q2 = a.next("QUESTION", m -> m.get("questionNumber").asInt() == 2, Duration.ofSeconds(5));
+        int wrong = 1 - TestPlayer.correctAnswer(q2);
+        a.answer(wrong);
+        a.next("SCORE_UPDATE", m -> m.has("wasCorrect") && !m.get("wasCorrect").isNull() && !m.get("wasCorrect").asBoolean(),
+                Duration.ofSeconds(5));
+        pair[1].send(Map.of("type", "FORFEIT"));
+
+        JsonNode answers = a.next("GAME_OVER").get("yourStats").get("answers");
+        assertThat(answers.get(1).get("answer").asText()).isEqualTo(wrong == 1 ? "True" : "False");
+    }
+
+    @Test
+    void compareGameOffersTwoOptions() throws Exception {
+        TestPlayer[] pair = privateGame("COMPARE");
+        TestPlayer a = pair[0];
+        JsonNode q = a.next("QUESTION", m -> true, Duration.ofSeconds(5));
+
+        assertThat(q.get("format").asText()).isEqualTo("CHOICE");
+        assertThat(q.get("options")).hasSize(2);
+        assertThat(a.answerCurrentCorrectly().get("wasCorrect").asBoolean()).isTrue();
+    }
+
+    @Test
+    void missingNumberGameHidesAnOperand() throws Exception {
+        TestPlayer[] pair = privateGame("MISSING_NUMBER");
+        TestPlayer a = pair[0];
+        JsonNode q = a.next("QUESTION", m -> true, Duration.ofSeconds(5));
+
+        assertThat(q.get("format").asText()).isEqualTo("NUMBER");
+        assertThat(q.get("questionText").asText()).contains("?");
+        assertThat(a.answerCurrentCorrectly().get("wasCorrect").asBoolean()).isTrue();
+    }
+
+    @Test
+    void publicGamesAnnounceTheirChallengeType() throws Exception {
+        TestPlayer a = connect();
+        connect();
+
+        assertThat(a.next("GAME_STATE").get("challengeType").asText())
+                .isIn("CLASSIC", "TRUE_FALSE", "MISSING_NUMBER", "COMPARE");
+    }
+
     /** Connects and joins public matchmaking */
     private TestPlayer connect(String name) throws Exception {
         TestPlayer player = connectOnly();
@@ -300,8 +365,9 @@ class GameWebSocketIntegrationTest {
 
     @Test
     void gameOverCarriesAnswerStats() throws Exception {
-        TestPlayer a = connect();
-        TestPlayer b = connect();
+        TestPlayer[] pair = privateGame("CLASSIC");
+        TestPlayer a = pair[0];
+        TestPlayer b = pair[1];
         a.next("QUESTION", m -> true, Duration.ofSeconds(5));
         a.answerCurrentCorrectly();
         a.next("QUESTION", m -> m.get("questionNumber").asInt() == 2, Duration.ofSeconds(5));

@@ -14,7 +14,7 @@ Real-time multiplayer math duel: two players race to solve 20 problems in 60 sec
 
 - Real-time 1v1 matches via WebSocket: random opponent, or a friend through a private invite link
 - Nicknames, and post-game stats with every answer and how long it took
-- Random math questions (addition, subtraction, multiplication, division)
+- Four challenge types: Classic, True or false, Missing number and Which is bigger (fractions, powers, roots); problems get harder through the game and never repeat
 - 60-second rounds with live score updates
 - Rematch system for consecutive games
 - Chalkboard design built phone-first: scores drawn as tally marks, on-screen number pad with haptic feedback

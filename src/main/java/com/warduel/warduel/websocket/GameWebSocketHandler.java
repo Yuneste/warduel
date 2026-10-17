@@ -255,7 +255,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         GameSession game;
         if(join.isCreateRoom()) {
-            game = gameService.createPrivateGame(safeSession, join.getPlayerName());
+            game = gameService.createPrivateGame(safeSession, join.getPlayerName(), ChallengeType.parse(join.getChallengeType()));
             sendMessage(session, new RoomCreatedMessage(game.getRoomCode()));
             return; // the game starts when the friend joins
         } else if(join.getRoomCode() != null && !join.getRoomCode().isBlank()) {
@@ -341,7 +341,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 player.incrementScore();
             }
             player.getAnswerLog().add(new AnswerRecord(currentQuestionIndex + 1, currentQuestion.getQuestionText(),
-                    String.valueOf(answerMsg.getAnswer()), correct,
+                    currentQuestion.formatAnswer(answerMsg.getAnswer()), correct,
                     System.currentTimeMillis() - player.getQuestionShownAtMillis()));
 
             // Sende Score Update an beide Spieler
@@ -522,6 +522,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    private static GameStateMessage gameState(GameSession.GameStatus status, Player you, Player opponent,
+                                              GameSession game, long seconds) {
+        GameStateMessage msg = new GameStateMessage(status, you.getDisplayName(), opponent.getDisplayName(), seconds);
+        msg.setChallengeType(game.getChallengeType().name());
+        return msg;
+    }
+
     private static GameOverMessage withStats(GameOverMessage msg, @Nullable Player you, @Nullable Player opponent) {
         msg.setYourStats(PlayerStats.of(you, true));
         msg.setOpponentStats(PlayerStats.of(opponent, false));
@@ -554,10 +561,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             log.info("Game {} starting countdown", game.getGameId());
 
             // Introduce the players to each other before the countdown
-            sendMessage(player1.getSession(), new GameStateMessage(GameSession.GameStatus.READY,
-                    player1.getDisplayName(), player2.getDisplayName(), (long) game.getDurationSeconds()));
-            sendMessage(player2.getSession(), new GameStateMessage(GameSession.GameStatus.READY,
-                    player2.getDisplayName(), player1.getDisplayName(), (long) game.getDurationSeconds()));
+            sendMessage(player1.getSession(), gameState(GameSession.GameStatus.READY, player1, player2, game, game.getDurationSeconds()));
+            sendMessage(player2.getSession(), gameState(GameSession.GameStatus.READY, player2, player1, game, game.getDurationSeconds()));
 
             // Tips to show during countdown
             String[] tips = {
@@ -628,10 +633,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             long fullDuration = game.getDurationSeconds();
 
             // Tell clients the game is running (enables the client's forfeit flow)
-            sendMessage(player1.getSession(), new GameStateMessage(GameSession.GameStatus.RUNNING,
-                    player1.getDisplayName(), player2.getDisplayName(), fullDuration));
-            sendMessage(player2.getSession(), new GameStateMessage(GameSession.GameStatus.RUNNING,
-                    player2.getDisplayName(), player1.getDisplayName(), fullDuration));
+            sendMessage(player1.getSession(), gameState(GameSession.GameStatus.RUNNING, player1, player2, game, fullDuration));
+            sendMessage(player2.getSession(), gameState(GameSession.GameStatus.RUNNING, player2, player1, game, fullDuration));
 
             // Sende erste Frage an beide Spieler mit gleicher Zeit
             sendNextQuestion(player1, game, fullDuration);
@@ -672,13 +675,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         int questionNumber = player.getCurrentQuestionIndex() + 1;
         player.setQuestionShownAtMillis(System.currentTimeMillis());
 
-        QuestionMessage msg = new QuestionMessage(
-                question.getQuestionText(),
-                questionNumber,
-                remainingSeconds
-        );
-
-        sendMessage(player.getSession(), msg);
+        sendMessage(player.getSession(), QuestionMessage.of(question, questionNumber, remainingSeconds));
     }
 
     /**

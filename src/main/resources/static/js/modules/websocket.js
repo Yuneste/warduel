@@ -35,8 +35,8 @@ export const websocket = {
 
     handleOpen() {
         gameState.isConnected = true;
-        const { createRoom, roomCode } = gameState.joinRequest;
-        this.send({ type: 'JOIN_GAME', playerName: gameState.playerName, createRoom, roomCode });
+        const { createRoom, roomCode, challengeType } = gameState.joinRequest;
+        this.send({ type: 'JOIN_GAME', playerName: gameState.playerName, createRoom, roomCode, challengeType });
         ui.showWaiting(createRoom ? 'room' : 'queue');
         this.startHeartbeat();
     },

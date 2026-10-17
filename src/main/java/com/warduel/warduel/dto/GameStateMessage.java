@@ -18,7 +18,8 @@ public class GameStateMessage extends BaseMessage {
     private GameStatus gameStatus;
     private String yourName;
     private String opponentName;
-    private Long remainingSeconds; // Nachricht an den Spieler (z.B "Verbleibende Zeit in Sekunden")
+    private Long remainingSeconds;
+    private String challengeType; // Nachricht an den Spieler (z.B "Verbleibende Zeit in Sekunden")
 
     public GameStateMessage() {
         super();

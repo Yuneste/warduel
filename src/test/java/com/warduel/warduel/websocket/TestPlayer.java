@@ -2,6 +2,7 @@ package com.warduel.warduel.websocket;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.warduel.warduel.support.Solver;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -63,10 +64,16 @@ class TestPlayer extends TextWebSocketHandler implements AutoCloseable {
         send(Map.of("type", "ANSWER", "answer", value));
     }
 
-    /** Answers the most recent question correctly and waits for the resulting score update. */
+    /** Answers the most recent question correctly (any challenge type) and waits for the score update. */
     JsonNode answerCurrentCorrectly() throws Exception {
-        answer(solve(last("QUESTION").get("questionText").asText()));
-        return next("SCORE_UPDATE");
+        answer(correctAnswer(last("QUESTION")));
+        return next("SCORE_UPDATE", m -> m.has("wasCorrect") && !m.get("wasCorrect").isNull(), DEFAULT_TIMEOUT);
+    }
+
+    static int correctAnswer(JsonNode question) {
+        List<String> options = new ArrayList<>();
+        question.path("options").forEach(o -> options.add(o.asText()));
+        return Solver.answer(question.path("format").asText("NUMBER"), question.get("questionText").asText(), options);
     }
 
     /** Waits for the next not-yet-returned message of this type (already received ones count). */
@@ -123,16 +130,4 @@ class TestPlayer extends TextWebSocketHandler implements AutoCloseable {
         }
     }
 
-    static int solve(String questionText) {
-        String[] parts = questionText.split(" ");
-        int a = Integer.parseInt(parts[0]);
-        int b = Integer.parseInt(parts[2]);
-        return switch(parts[1]) {
-            case "+" -> a + b;
-            case "-" -> a - b;
-            case "×" -> a * b;
-            case "÷" -> a / b;
-            default -> throw new IllegalArgumentException(questionText);
-        };
-    }
 }

@@ -9,7 +9,13 @@ MathWars (repo/artifact name `warduel`): a real-time 1v1 math quiz game. Spring 
 ## Game requirements (source of truth)
 
 - Two players are matched automatically: the first to connect waits, and the second fills the game.
-- Each player gets their **own** 20 random questions (add/subtract/multiply/divide, configurable via `game.*`). Subtraction never goes negative, and division always comes out even.
+- Each player gets their **own** 20 random questions. Both players get the same **challenge type** (`ChallengeType`):
+  - Classic: `7 × 8`
+  - True or false: `7 × 8 = 54`
+  - Missing number: `? × 8 = 56`
+  - Which is bigger: `3/4 or 0.7`
+
+  Public games get a random type (or `game.public-challenge-type`), a private host picks one, and a rematch keeps it. Problems get harder over the game (tiers within the configured `game.*` ranges) and never repeat within a list. Subtraction never goes negative, and division always comes out even.
 - 60-second round with a 3-second countdown before it. The first player to reach 20 correct answers wins immediately. Otherwise the higher score wins when time runs out, and equal scores are a draw.
 - Live score updates go to both players after every answer. Each question can be answered only once, and answers after the time is up are rejected.
 - After the game, both players must agree to a rematch, which starts without a countdown. Forfeiting or disconnecting during a game gives the opponent the win. Leaving during the queue or countdown cancels the match.
@@ -30,6 +36,7 @@ Works on JDK 17 through 25. CI runs on 17 and 25. On JDK 23+, Lombok only runs b
 
 Tests:
 - unit tests for the rules (`QuestionGeneratorServiceTest`), the state machine (`GameSessionTest`), matchmaking (`GameServiceTest`) and the JSON protocol the frontend relies on (`MessageProtocolTest`)
+- `ChallengeQuestionsTest`, which checks every challenge type against `support/Solver`. That's an independent answer key sharing no code with the generator, and scripted `TestPlayer`s use it too, so they can answer any type.
 - `GameWebSocketIntegrationTest`, which starts the server on a random port with 5-second rounds and win score 3, and plays real matches through `TestPlayer` clients
 
 When you change game behavior, add or adjust a scenario there. When changing ports, also set `app.allowed-origins`, or the WebSocket handshake is rejected with 403. There's no JS build step or linter: edit files under `src/main/resources/static/` and reload.
@@ -48,6 +55,7 @@ When you change game behavior, add or adjust a scenario there. When changing por
 - **Concurrency:** every session is wrapped in a `ConcurrentWebSocketSessionDecorator` (looked up by ID in `sendMessage`), answers are processed under `synchronized(player)`, and rematch requests go through `game.getRematchLock()`.
 - **`dto/`** holds the WebSocket protocol. `BaseMessage` uses Jackson polymorphism on the `type` field (`@JsonSubTypes`). To add a message type: create the DTO, register it in `BaseMessage`, add a `case` in `GameWebSocketHandler.handleTextMessage` (client→server), and/or add a handler in `messageHandlers.js` (server→client). The server sends `GAME_STATE` (RUNNING) when a round starts, which the client needs for Forfeit. `JoinGameMessage` isn't used yet; it's kept for nicknames.
 - **`config/GameConfiguration`** binds the `game.*` properties.
+- **Answers are always ints** (`Question.AnswerFormat`): the number for NUMBER, 1/0 for TRUE_FALSE, and the option index for CHOICE. `QUESTION` carries `format` and `options`, and `Question.formatAnswer` turns an answer into words for the stats. The chalk font only has ² and ³, so powers stay squares and cubes.
 - **`SecurityConfig`** permits all requests on purpose (anonymous play). The default user auto-configuration is excluded in `WarDuelApplication`. JPA + H2 (local) / Postgres (production) are kept for the planned leaderboard.
 - **`HomeController`** serves the Thymeleaf templates `index` (the SPA), `impressum` and `datenschutz`. It passes `questionsPerGame`, `durationSeconds` and `winScore` to the page, which shows them and exposes them as `<body data-*>` for the JS. Never hardcode those numbers in the frontend.
 
@@ -68,11 +76,9 @@ When you change game behavior, add or adjust a scenario there. When changing por
 
 ## Roadmap
 
-Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs), 3 (tests, CI, JDK 25 support) and 4 (chalkboard redesign) are done.
+Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs), 3 (tests, CI, JDK 25 support) and 4 (chalkboard redesign) are done. From Phase 5, 5a (nicknames, invite links, stats) and 5b (challenge types) are done.
 
 5. **Features and game feel:**
-   - nicknames, a private match link, post-game stats
-   - challenge types: Classic, True/False Blitz, Missing Number, Compare
    - a leaderboard ranked by total wins; identity is a nickname plus a secret device token, and only public matchmaking games count
    - game feel in the chalkboard style: a match intro, streaks and combos, chalk-dust effects on correct answers, a celebration on wins
    - Web Audio sound effects (chalk scratches, taps, countdown, win/lose) with a mute button

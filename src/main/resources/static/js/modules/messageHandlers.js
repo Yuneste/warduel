@@ -53,6 +53,7 @@ function handleRoomCreated(message) {
 function handleGameState(message) {
     gameState.currentGameState = message.gameStatus;
     if (message.yourName) ui.setNames(message.yourName, message.opponentName);
+    if (message.challengeType) ui.setChallenge(message.challengeType);
     if (message.gameStatus === 'RUNNING') {
         gameState.opponentGone = false;
         ui.resetGameBoard();
@@ -61,13 +62,13 @@ function handleGameState(message) {
 }
 
 function handleCountdown(message) {
-    ui.showCountdown(message.countdown, message.message);
+    ui.showCountdown(message.countdown);
 }
 
 function handleQuestion(message) {
     const show = () => {
         ui.showGame();
-        ui.updateQuestion(message.questionText, message.questionNumber);
+        ui.updateQuestion(message);
         gameState.setGameEndTime(Number(message.remainingSeconds));
         startTimer();
     };

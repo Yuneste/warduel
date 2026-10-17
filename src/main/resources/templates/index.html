@@ -44,6 +44,18 @@
             <button id="play-button" class="btn btn-primary" type="button">Find an opponent</button>
             <button id="join-invite-button" class="btn btn-primary" type="button" hidden>Join the game</button>
             <button id="friend-button" class="link-button" type="button">Play a friend instead</button>
+            <fieldset id="friend-options" class="friend-options" hidden>
+                <legend class="name-label">Pick the problems for your friend and you</legend>
+                <div class="mode-chips">
+                    <label class="mode-chip"><input type="radio" name="mode" value="" checked><span>Mixed</span></label>
+                    <label class="mode-chip"><input type="radio" name="mode" value="CLASSIC"><span>Classic</span></label>
+                    <label class="mode-chip"><input type="radio" name="mode" value="TRUE_FALSE"><span>True or false</span></label>
+                    <label class="mode-chip"><input type="radio" name="mode" value="MISSING_NUMBER"><span>Missing number</span></label>
+                    <label class="mode-chip"><input type="radio" name="mode" value="COMPARE"><span>Which is bigger?</span></label>
+                </div>
+                <button id="create-room-button" class="btn btn-primary" type="button">Create invite link</button>
+                <button id="friend-back-button" class="link-button" type="button">Back</button>
+            </fieldset>
             <p class="hint keyboard-only">On a keyboard? Type your answers and press Enter.</p>
         </div>
     </section>
@@ -68,6 +80,7 @@
         </div>
         <div id="countdown-state" class="countdown-state" hidden>
             <p class="matchup"><span id="matchup-you" class="you-color">You</span> <span class="chalk vs">vs</span> <span id="matchup-them" class="them-color">Opponent</span></p>
+            <p id="countdown-mode" class="chalk countdown-mode"></p>
             <p id="countdown-number" class="chalk countdown-number" aria-live="assertive">3</p>
             <p id="countdown-tip" class="muted countdown-tip"></p>
         </div>
@@ -92,13 +105,18 @@
 
         <div class="question-area">
             <p id="question-number" class="muted question-number">Question 1 of 20</p>
+            <p id="question-prompt" class="question-prompt" hidden></p>
             <p id="question-text" class="chalk question-text" aria-live="polite">&nbsp;</p>
             <div id="answer-display" class="chalk answer" aria-live="polite" aria-label="Your answer"></div>
             <p id="feedback-area" class="feedback" role="status"></p>
         </div>
 
         <div class="pad-area">
-            <div class="pad" role="group" aria-label="Number pad">
+            <div id="choice-pad" class="choice-pad" role="group" aria-label="Answer" hidden>
+                <button id="choice-left" class="choice chalk" type="button" data-side="left"></button>
+                <button id="choice-right" class="choice chalk" type="button" data-side="right"></button>
+            </div>
+            <div id="number-pad" class="pad" role="group" aria-label="Number pad">
                 <button class="key chalk" type="button" data-key="7">7</button>
                 <button class="key chalk" type="button" data-key="8">8</button>
                 <button class="key chalk" type="button" data-key="9">9</button>
