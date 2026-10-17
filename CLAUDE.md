@@ -83,7 +83,9 @@ When you change game behavior, add or adjust a scenario there. When changing por
 
 Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs), 3 (tests, CI, JDK 25 support) and 4 (chalkboard redesign) are done. Phase 5 is done: 5a (nicknames, invite links, stats), 5b (challenge types), 5c (leaderboard) and 5d (sound and game feel). If you change what is stored or sent, update `templates/datenschutz.html` (German privacy policy) to match.
 
-6. **Hosting:** `Dockerfile` and `render.yaml` (Render free plan, Frankfurt) are ready, with Postgres on Neon through `DATABASE_URL`. CI builds the image and runs the app against Postgres. What's left is the account setup in Render and Neon, which only the owner can do (see the README's Deploy section).
+6. **Hosting:** live at https://mathwars-6k6s.onrender.com (Render free plan, Frankfurt, auto-deploys from `main`), with Postgres on Neon through `DATABASE_URL`. All phases are done.
+
+When you test against the live site, play only **private** games to the end, or cancel public matches during the countdown. Finished public games put test names on the real leaderboard.
 
 ## Conventions
 

@@ -4,6 +4,8 @@
 
 Real-time multiplayer math duel: two players race to solve 20 problems in 60 seconds, on a chalkboard.
 
+**[▶ Play live](https://mathwars-6k6s.onrender.com)** (free hosting: the first visit after a quiet spell can take up to a minute while the server wakes up)
+
 ![Three challenge types on a phone: Classic with a "5 in a row" streak and chalk dust, True or false, and Which is bigger with powers](docs/screenshots/gameplay.png)
 
 | Desktop | Every ending |
