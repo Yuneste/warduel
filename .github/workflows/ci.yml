@@ -88,7 +88,7 @@ jobs:
             cat app.log; exit 1
           }
           start
-          grep -qi "postgresql" app.log || { echo "Not connected to Postgres"; cat app.log; exit 1; }
+          grep -q "Database version: 16" app.log || { echo "Not connected to Postgres"; cat app.log; exit 1; }
           node .github/scripts/play-public-game.mjs 8080 "$TOKEN"
           sleep 2
           kill "$(cat app.pid)"; sleep 3
