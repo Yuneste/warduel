@@ -51,6 +51,28 @@ Use **JDK 17–21**. On JDK 23+, the Lombok version pinned by Spring Boot 3.2 fa
 - Data flow in `static/js/modules/`: `websocket.js` (connection, heartbeat, reload on loss) → `messageHandlers.js` (routes by `type`) → `gameState.js` (state + client timer) and `uiController.js` (DOM only, no logic). `gameActions.js` holds the high-level actions (play, leave, rematch), `inputHandler.js` the on-screen number pad, and `domElements.js` the cached element lookups.
 - `static/css/style.css` is the only stylesheet.
 
+## Roadmap
+
+Work happens on branch `refresh`, one commit per phase. Phase 1 (cleanup) is done.
+
+2. **Backend bugs:**
+   - start the game clock only after the countdown, and cancel the match if someone leaves during it
+   - cancel each game's timer and connection monitor when it ends (stale timers currently end rematches early)
+   - thread-safe sends (`ConcurrentWebSocketSessionDecorator`)
+   - atomic per-player answer handling
+   - a working Forfeit (the server sends `GAME_STATE`)
+   - English display names
+   - correct ordering of rematch messages
+3. **Tests and CI:** rewrite and track `src/test`, add WebSocket integration tests that play real matches, add GitHub Actions with a badge, upgrade dependencies so JDK 25 works.
+4. **Complete visual redesign:** the current pastel design is to be replaced, not polished. Use the `frontend-design` and `ui-ux-pro-max` skills, offer 2–3 directions to choose from, then rebuild every screen phone-first. Include keyboard input, values read from the server, visible rematch and error states, and accessibility.
+5. **Features and game feel:**
+   - nicknames, a private match link, post-game stats
+   - challenge types: Classic, True/False Blitz, Missing Number, Compare
+   - a leaderboard ranked by total wins; identity is a nickname plus a secret device token, and only public matchmaking games count
+   - a versus intro, tug-of-war bar, combos and confetti
+   - Web Audio sound effects with a mute button
+6. **Hosting:** a free Render web service (`Dockerfile` + `render.yaml`) with Postgres on Neon. No custom domain is needed.
+
 ## Conventions
 
 - Many existing code comments and log messages are in German. Write new ones in English.
