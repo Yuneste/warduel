@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-MathWars (repo/artifact name `warduel`): a real-time 1v1 math quiz game. Spring Boot 3.2 / Java 17 backend talking to a vanilla ES6-module frontend over a raw WebSocket. The frontend is served as static resources.
+MathWars (repo/artifact name `warduel`): a real-time 1v1 math quiz game. Spring Boot 3.5 / Java 17+ backend talking to a vanilla ES6-module frontend over a raw WebSocket. The frontend is served as static resources.
 
 ## Game requirements (source of truth)
 
@@ -18,17 +18,21 @@ MathWars (repo/artifact name `warduel`): a real-time 1v1 math quiz game. Spring 
 
 ## Commands
 
-Use **JDK 17–21**. On JDK 23+, the Lombok version pinned by Spring Boot 3.2 fails to compile (`cannot find symbol` in DTOs). Locally, JDK 21 is at `C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot`.
+Works on JDK 17 through 25. CI runs on 17 and 25. On JDK 23+, Lombok only runs because the pom registers it under `annotationProcessorPaths` (with `lombok.version` overridden). Keep that if you touch the compiler plugin.
 
 ```bash
 ./mvnw spring-boot:run                       # http://localhost:8080 (open two tabs to play)
 ./mvnw spring-boot:run "-Dspring-boot.run.arguments=--server.port=8090 --app.allowed-origins=http://localhost:8090"
 ./mvnw clean package                         # target/warduel-0.0.1-SNAPSHOT.jar
-./mvnw test                                  # run tests
+./mvnw test                                  # run tests (~45s, mostly the WebSocket integration test)
 ./mvnw test -Dtest=ClassName#methodName      # single test
 ```
 
-`src/test/` is currently **gitignored**: the tests exist locally but are stale and are due to be rewritten and tracked again. When changing ports, also set `app.allowed-origins`, or the WebSocket handshake is rejected with 403. There's no JS build step or linter: edit files under `src/main/resources/static/` and reload.
+Tests:
+- unit tests for the rules (`QuestionGeneratorServiceTest`), the state machine (`GameSessionTest`), matchmaking (`GameServiceTest`) and the JSON protocol the frontend relies on (`MessageProtocolTest`)
+- `GameWebSocketIntegrationTest`, which starts the server on a random port with 5-second rounds and win score 3, and plays real matches through `TestPlayer` clients
+
+When you change game behavior, add or adjust a scenario there. When changing ports, also set `app.allowed-origins`, or the WebSocket handshake is rejected with 403. There's no JS build step or linter: edit files under `src/main/resources/static/` and reload.
 
 ## Architecture
 
@@ -54,9 +58,8 @@ Use **JDK 17–21**. On JDK 23+, the Lombok version pinned by Spring Boot 3.2 fa
 
 ## Roadmap
 
-Work happens on branch `refresh`, one commit per phase. Phase 1 (cleanup) and Phase 2 (backend bugs) are done.
+Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs) and 3 (tests, CI, JDK 25 support) are done.
 
-3. **Tests and CI:** rewrite and track `src/test`, add WebSocket integration tests that play real matches, add GitHub Actions with a badge, upgrade dependencies so JDK 25 works.
 4. **Complete visual redesign:** the current pastel design is to be replaced, not polished. Use the `frontend-design` and `ui-ux-pro-max` skills, offer 2–3 directions to choose from, then rebuild every screen phone-first. Include keyboard input, values read from the server, visible rematch and error states (for example "Opponent left the queue" is currently invisible on the waiting screen), and accessibility.
 5. **Features and game feel:**
    - nicknames, a private match link, post-game stats

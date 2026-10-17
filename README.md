@@ -1,5 +1,7 @@
 # MathWars
 
+[![CI](https://github.com/Yuneste/warduel/actions/workflows/ci.yml/badge.svg)](https://github.com/Yuneste/warduel/actions/workflows/ci.yml)
+
 Real-time multiplayer math quiz game where two players compete to solve 20 questions in 60 seconds.
 
 🎮 **[Play Live](https://warduel-production.up.railway.app/)**
@@ -15,7 +17,7 @@ Real-time multiplayer math quiz game where two players compete to solve 20 quest
 ## Tech Stack
 
 **Backend:**
-- Java 17 + Spring Boot 3.2.0
+- Java 17+ (tested on 17 and 25) + Spring Boot 3.5
 - WebSocket (TextWebSocketHandler)
 - Concurrent game management with thread safety
 - Rate limiting and connection monitoring
@@ -29,18 +31,25 @@ Real-time multiplayer math quiz game where two players compete to solve 20 quest
 ## Quick Start
 
 ### Prerequisites
-- Java 17+
-- Maven 3.6+
+- Java 17+ (Maven is included via the wrapper)
 
 ### Run Locally
 
 ```bash
-git clone https://github.com/yuneste/warduel.git
+git clone https://github.com/Yuneste/warduel.git
 cd warduel
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
 Open `http://localhost:8080` in two browser windows to play.
+
+### Tests
+
+```bash
+./mvnw test
+```
+
+Besides unit tests for the game rules, matchmaking and message format, `GameWebSocketIntegrationTest` starts the server on a random port and plays real matches with two WebSocket clients: countdown, timer, win score, rematch, forfeit, disconnects and rate limiting.
 
 ## Project Structure
 

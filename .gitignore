@@ -59,5 +59,3 @@ hs_err_pid*
 application-local.properties
 application-dev.properties
 
-# Tests (stale; to be rewritten and tracked again)
-src/test/
