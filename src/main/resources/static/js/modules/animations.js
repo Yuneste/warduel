@@ -1,45 +1,20 @@
 /**
  * Animations
- * Handles UI animations (pointing hand, etc.)
+ * Small physical feedback helpers shared by the UI
  */
 
-import { elements } from './domElements.js';
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 export const animations = {
-    // Start pointing hand animation (shows every 15 seconds)
-    startPointingHand() {
-        if (!elements.pointingHand) return;
-
-        // Show pointing hand every 15 seconds
-        setInterval(() => {
-            this.showPointingHand();
-        }, 15000);
-
-        // Show once immediately after 2 seconds
-        setTimeout(() => {
-            this.showPointingHand();
-        }, 2000);
-    },
-
-    // Show pointing hand animation
-    showPointingHand() {
-        // Only show if lobby is visible
-        if (elements.lobbyArea && elements.lobbyArea.style.display !== 'none') {
-            elements.pointingHand.classList.add('show');
-
-            // Remove class after animation completes (2s)
-            setTimeout(() => {
-                elements.pointingHand.classList.remove('show');
-            }, 2000);
+    // Short vibration on phones that support it
+    vibrate(pattern = 10) {
+        if ('vibrate' in navigator && !reducedMotion.matches) {
+            navigator.vibrate(pattern);
         }
     },
 
     // Add haptic feedback to element
     addHapticFeedback(element) {
-        element.addEventListener('touchstart', () => {
-            if ('vibrate' in navigator) {
-                navigator.vibrate(10);
-            }
-        }, { passive: true });
+        element.addEventListener('touchstart', () => this.vibrate(), { passive: true });
     }
 };

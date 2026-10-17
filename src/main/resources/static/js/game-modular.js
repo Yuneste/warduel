@@ -10,62 +10,86 @@ import { websocket } from './modules/websocket.js';
 import { inputHandler } from './modules/inputHandler.js';
 import { animations } from './modules/animations.js';
 import { gameActions } from './modules/gameActions.js';
+import { sound } from './modules/sound.js';
 
-// ==================== INITIALIZATION ====================
+// Modules load deferred, so the DOM is ready here
+inputHandler.setup();
+setupButtons();
+websocket.setupVisibilityDetection();
+gameActions.restoreName();
+ui.showLobby();
+setupSound();
 
-window.addEventListener('DOMContentLoaded', () => {
-    console.log('MathWars starting...');
-    initializeGame();
-});
+// Browsers only allow audio after a user gesture
+function setupSound() {
+    const unlock = () => sound.unlock();
+    document.addEventListener('pointerdown', unlock, { capture: true });
+    document.addEventListener('keydown', unlock, { capture: true });
 
-function initializeGame() {
-    // Setup input handlers
-    inputHandler.setupNumberPad();
-
-    // Setup button event listeners
-    setupButtons();
-
-    // Start animations
-    animations.startPointingHand();
-
-    // Setup visibility detection (for mobile lock/unlock)
-    websocket.setupVisibilityDetection();
-
-    console.log('Game initialized successfully');
+    const render = () => {
+        const muted = sound.isMuted();
+        elements.muteButton.setAttribute('aria-pressed', String(muted));
+        elements.muteButton.setAttribute('aria-label', muted ? 'Sound off' : 'Sound on');
+        elements.muteButton.title = muted ? 'Sound off' : 'Sound on';
+    };
+    elements.muteButton.addEventListener('click', () => {
+        sound.setMuted(!sound.isMuted());
+        render();
+        sound.tap();
+    });
+    render();
 }
-
-// ==================== BUTTON SETUP ====================
 
 function setupButtons() {
-    // Play button
-    if (elements.playButton) {
-        animations.addHapticFeedback(elements.playButton);
-        elements.playButton.addEventListener('click', () => {
-            console.log('Play button clicked');
-            gameActions.startGame();
-        });
+    const buttons = [
+        [elements.playButton, () => gameActions.startGame()],
+        [elements.joinInviteButton, () => gameActions.joinInvite()],
+        [elements.friendButton, () => gameActions.playFriend()],
+        [elements.createRoomButton, () => gameActions.createRoom()],
+        [elements.leaderboardButton, () => gameActions.openLeaderboard()],
+        [elements.leaderboardBackButton, () => gameActions.closeLeaderboard()],
+        [elements.friendBackButton, () => gameActions.closeFriendOptions()],
+        [elements.joinCodeButton, () => gameActions.joinWithCode()],
+        [elements.cancelChallengeButton, () => gameActions.leaveQueue()],
+        [elements.acceptChallengeButton, () => gameActions.answerChallenge(true)],
+        [elements.declineChallengeButton, () => gameActions.answerChallenge(false)],
+        [elements.leaveWaitingButton, () => gameActions.leaveQueue()],
+        [elements.leaveRoomButton, () => gameActions.leaveQueue()],
+        [elements.copyLinkButton, () => gameActions.copyLink()],
+        [elements.shareLinkButton, () => gameActions.shareLink()],
+        [elements.forfeitButton, () => gameActions.forfeit()],
+        [elements.rematchButton, () => gameActions.requestRematch()],
+        [elements.newGameButton, () => gameActions.findNewOpponent()],
+        [elements.menuButton, () => gameActions.backToMenu()]
+    ];
+
+    for (const [button, action] of buttons) {
+        animations.addHapticFeedback(button);
+        button.addEventListener('click', action);
     }
 
-    // Leave waiting button
-    if (elements.leaveWaitingButton) {
-        animations.addHapticFeedback(elements.leaveWaitingButton);
-        elements.leaveWaitingButton.addEventListener('click', () => {
-            console.log('Leave waiting button clicked');
-            gameActions.leaveGame();
-        });
-    }
+    elements.joinCodeInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            gameActions.joinWithCode();
+        }
+    });
 
-    // Forfeit button
-    if (elements.forfeitButton) {
-        animations.addHapticFeedback(elements.forfeitButton);
-        elements.forfeitButton.addEventListener('click', () => {
-            console.log('Forfeit button clicked');
-            gameActions.leaveGame();
-        });
-    }
+    // Escape declines an open challenge (Enter already presses the focused Accept button)
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && ui.isChallengePopupOpen()) {
+            event.preventDefault();
+            gameActions.answerChallenge(false);
+        }
+    });
+
+    // Enter in the name field starts the main action of the lobby
+    elements.playerName.addEventListener('keydown', event => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        (gameState.inviteCode ? elements.joinInviteButton : elements.playButton).click();
+    });
 }
-
-// ==================== CLEANUP ====================
 
 window.addEventListener('beforeunload', () => {
     gameState.stopTimer();

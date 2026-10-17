@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Configuration;
 /**
  * GameConfiguration - Zentrale Konfiguration für Spielparameter
  * Ermöglicht einfache Anpassung über application.properties
- * Bereitet vor für zukünftige Game Modes
  */
 @Configuration
 @ConfigurationProperties(prefix = "game")
@@ -61,6 +60,17 @@ public class GameConfiguration {
      * Maximale Zahl für Divisionsaufgaben
      */
     private int divisionMax = 10;
+
+    /**
+     * Challenge type for public matchmaking (CLASSIC, TRUE_FALSE, MISSING_NUMBER, COMPARE);
+     * empty means a random type per game
+     */
+    private String publicChallengeType = "";
+
+    /**
+     * Seconds the creator of an invite link has to accept a challenge
+     */
+    private int challengeTimeoutSeconds = 10;
 
     /**
      * Prüft ob vorzeitiger Sieg aktiviert ist

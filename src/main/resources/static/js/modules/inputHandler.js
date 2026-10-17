@@ -1,86 +1,126 @@
 /**
  * Input Handler
- * Handles number pad input and answer submission
+ * Number pad and keyboard input, answer submission
  */
 
 import { gameState } from './gameState.js';
+import { elements } from './domElements.js';
 import { ui } from './uiController.js';
 import { websocket } from './websocket.js';
+import { animations } from './animations.js';
+import { sound } from './sound.js';
+
+const MAX_DIGITS = 7;
 
 export const inputHandler = {
-    // Setup number pad event listeners
-    setupNumberPad() {
-        const buttons = document.querySelectorAll('.number-btn');
+    setup() {
+        elements.keys.forEach(button => {
+            animations.addHapticFeedback(button);
+            button.addEventListener('click', () => this.handleKey(button.dataset.key));
+        });
+        [elements.choiceLeft, elements.choiceRight].forEach(button => {
+            animations.addHapticFeedback(button);
+            button.addEventListener('click', () => this.submitChoice(button));
+        });
 
-        buttons.forEach(btn => {
-            // Add haptic feedback on touch
-            btn.addEventListener('touchstart', () => {
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(10);
-                }
-            }, { passive: true });
-
-            btn.addEventListener('click', () => {
-                const num = btn.dataset.num;
-
-                if (num === 'C') {
-                    this.clearAnswer();
-                } else if (num === '−') {
-                    this.toggleNegative();
-                } else if (num === '✓') {
-                    this.submitAnswer();
-                } else {
-                    this.addDigit(num);
-                }
-            });
+        document.addEventListener('keydown', event => {
+            if (elements.gameArea.hidden || event.ctrlKey || event.metaKey || event.altKey) return;
+            if (gameState.questionFormat !== 'NUMBER') {
+                this.handleChoiceKey(event);
+                return;
+            }
+            const key = this.normalizeKey(event.key);
+            if (!key) return;
+            // Enter on a focused button (e.g. tabbed to "7") activates that button as usual
+            if (key === 'Enter' && event.target.closest('button')) return;
+            event.preventDefault();
+            // Typing on the keyboard shouldn't leave a focus ring on the last clicked pad key
+            if (document.activeElement && document.activeElement.classList.contains('key')) {
+                document.activeElement.blur();
+            }
+            ui.flashKey(key === 'Escape' ? 'Backspace' : key);
+            this.handleKey(key);
         });
     },
 
-    // Add digit to answer
+    // True/false and "which is bigger": arrows or 1/2 pick a side, T/F (or Y/N) answer true/false
+    handleChoiceKey(event) {
+        if (event.key === 'Enter' && event.target.closest('button')) return;
+        const key = event.key.toLowerCase();
+        let button = null;
+        if (key === 'arrowleft' || key === '1') button = elements.choiceLeft;
+        if (key === 'arrowright' || key === '2') button = elements.choiceRight;
+        if (gameState.questionFormat === 'TRUE_FALSE') {
+            if (key === 't' || key === 'y') button = elements.choiceLeft;
+            if (key === 'f' || key === 'n') button = elements.choiceRight;
+        }
+        if (!button) return;
+        event.preventDefault();
+        if (document.activeElement && document.activeElement.classList.contains('choice')) {
+            document.activeElement.blur(); // no leftover focus ring from an earlier tap
+        }
+        ui.flashKey(button);
+        this.submitChoice(button);
+    },
+
+    submitChoice(button) {
+        if (gameState.awaitingResult) return;
+        gameState.awaitingResult = true;
+        gameState.chosenButton = button;
+        websocket.send({ type: 'ANSWER', answer: Number(button.dataset.value) });
+    },
+
+    // Map physical keys to pad keys (numpad and minus variants included)
+    normalizeKey(key) {
+        if (/^[0-9]$/.test(key)) return key;
+        if (key === '-' || key === 'Subtract') return '-';
+        if (key === 'Backspace' || key === 'Delete') return 'Backspace';
+        if (key === 'Escape') return 'Escape';
+        if (key === 'Enter') return 'Enter';
+        return null;
+    },
+
+    handleKey(key) {
+        if (gameState.awaitingResult) return; // wait for the previous answer's result
+        if (key !== 'Enter') sound.tap();
+        if (key === 'Enter') this.submitAnswer();
+        else if (key === 'Backspace') this.deleteDigit();
+        else if (key === 'Escape') this.setAnswer('');
+        else if (key === '-') this.toggleNegative();
+        else this.addDigit(key);
+    },
+
+    setAnswer(value) {
+        gameState.currentAnswer = value;
+        ui.updateAnswerDisplay(value);
+    },
+
     addDigit(digit) {
-        // Limit to 10 digits
-        if (gameState.currentAnswer.replace('-', '').length < 10) {
-            gameState.currentAnswer += digit;
-            ui.updateAnswerDisplay(gameState.currentAnswer);
-        }
+        const answer = gameState.currentAnswer;
+        if (answer.replace('-', '').length >= MAX_DIGITS) return;
+        // No leading zeros: "0" followed by a digit becomes that digit
+        const next = /^-?0$/.test(answer) ? answer.slice(0, -1) + digit : answer + digit;
+        this.setAnswer(next);
     },
 
-    // Clear answer
-    clearAnswer() {
-        gameState.currentAnswer = '';
-        ui.updateAnswerDisplay('');
+    deleteDigit() {
+        const next = gameState.currentAnswer.slice(0, -1);
+        this.setAnswer(next === '-' ? '' : next);
     },
 
-    // Toggle negative sign
     toggleNegative() {
-        if (gameState.currentAnswer.startsWith('-')) {
-            gameState.currentAnswer = gameState.currentAnswer.substring(1);
-        } else {
-            gameState.currentAnswer = '-' + gameState.currentAnswer;
-        }
-        ui.updateAnswerDisplay(gameState.currentAnswer);
+        const answer = gameState.currentAnswer;
+        this.setAnswer(answer.startsWith('-') ? answer.slice(1) : '-' + answer);
     },
 
-    // Submit answer to server
     submitAnswer() {
-        if (!gameState.currentAnswer || gameState.currentAnswer === '—') {
-            ui.showFeedback('Please enter an answer!', false);
+        const answer = parseInt(gameState.currentAnswer, 10);
+        if (Number.isNaN(answer)) {
+            ui.showFeedback('Type a number first');
             return;
         }
 
-        const answer = parseInt(gameState.currentAnswer);
-
-        if (isNaN(answer)) {
-            ui.showFeedback('Invalid number!', false);
-            return;
-        }
-
-        // Send to server
-        websocket.send({
-            type: 'ANSWER',
-            answer: answer
-        });
-
-        console.log('Sent answer:', answer);
+        gameState.awaitingResult = true;
+        websocket.send({ type: 'ANSWER', answer });
     }
 };

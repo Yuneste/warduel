@@ -3,7 +3,28 @@
  * Centralized state for the game
  */
 
+// Game settings rendered into <body data-*> by the server
+const settings = document.body.dataset;
+
+// Invite links look like /?room=K7QM2X
+const inviteCode = new URLSearchParams(window.location.search).get('room');
+
 export const gameState = {
+    // Settings from the server (fall back to the defaults if the page was opened without them)
+    config: {
+        questionsPerGame: Number(settings.questions) || 20,
+        durationSeconds: Number(settings.duration) || 60,
+        winScore: Number(settings.winScore) || 20
+    },
+
+    // Who we are and how we want to join (sent as JOIN_GAME once connected)
+    playerName: '',
+    inviteCode: inviteCode ? inviteCode.trim().toUpperCase() : null,
+    inviteHost: null, // name of the friend behind the invite, once known (for "Challenge Yuko again?")
+    joinRequest: { createRoom: false, roomCode: null, challengeType: null },
+    yourName: 'You',
+    opponentName: 'Opponent',
+
     // Connection
     socket: null,
     isConnected: false,
@@ -15,10 +36,16 @@ export const gameState = {
 
     // Rematch
     rematchRequested: false,
-    opponentWantsRematch: false,
+    opponentGone: false, // the opponent left; rematch is impossible
+
+    // Current challenge and question
+    challengeType: 'CLASSIC',
+    questionFormat: 'NUMBER', // NUMBER, TRUE_FALSE or CHOICE
+    chosenButton: null,       // the choice button picked for the current question
 
     // Input
     currentAnswer: '',
+    awaitingResult: false, // an answer was sent and its SCORE_UPDATE hasn't arrived yet
 
     // Getters
     getSocket() {
@@ -38,8 +65,9 @@ export const gameState = {
         this.isConnected = false;
         this.currentGameState = 'CONNECTING';
         this.currentAnswer = '';
+        this.awaitingResult = false;
         this.rematchRequested = false;
-        this.opponentWantsRematch = false;
+        this.opponentGone = false;
         this.stopTimer();
     },
 
@@ -50,12 +78,13 @@ export const gameState = {
 
     getRemainingTime() {
         if (!this.gameEndTime) return 0;
-        return Math.max(0, Math.floor((this.gameEndTime - Date.now()) / 1000));
+        return Math.max(0, Math.ceil((this.gameEndTime - Date.now()) / 1000));
     },
 
     startTimer(callback) {
         this.stopTimer();
-        this.timerInterval = setInterval(callback, 1000);
+        callback();
+        this.timerInterval = setInterval(callback, 250);
     },
 
     stopTimer() {

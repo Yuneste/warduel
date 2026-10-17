@@ -5,9 +5,10 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledFuture;
 
 /**
  * GameSession - Repräsentiert eine Spielsitzung zwischen zwei Spielern
@@ -15,7 +16,7 @@ import java.util.UUID;
  */
 @Getter
 @Setter
-@ToString(exclude = {"player1", "player2"})
+@ToString(exclude = {"player1", "player2", "scheduledTasks", "rematchLock"})
 public class GameSession {
 
     /**
@@ -41,8 +42,17 @@ public class GameSession {
     // Spiel-Status (volatile für Thread-Sicherheit)
     private volatile GameStatus status;
 
-    // Fragen
-    private final List<Question> questions;
+    // Number of rounds started so far (1 = first match, 2+ = rematches)
+    private volatile int round;
+
+    // Code of a private game shared by link; null for public matchmaking
+    private volatile String roomCode;
+
+    // Someone who opened the invite link and is waiting for the host to accept (not a player yet)
+    private volatile Player pendingChallenger;
+
+    // Kind of problems for this game (kept for rematches)
+    private volatile ChallengeType challengeType = ChallengeType.CLASSIC;
 
     // Zeit-Tracking (volatile für Thread-Sicherheit)
     private volatile LocalDateTime startTime;
@@ -52,13 +62,18 @@ public class GameSession {
     private volatile boolean player1WantsRematch;
     private volatile boolean player2WantsRematch;
 
+    // Countdown, game timer and connection monitor of the current round; cancelled when the round ends
+    private final List<ScheduledFuture<?>> scheduledTasks = new CopyOnWriteArrayList<>();
+
+    // Serializes rematch requests so "waiting" and "starting" messages go out in a consistent order
+    private final Object rematchLock = new Object();
+
     /**
      * Konstruktor
      */
     public GameSession() {
         this.gameId = UUID.randomUUID().toString();
         this.status = GameStatus.WAITING;
-        this.questions = new ArrayList<>();
         this.player1WantsRematch = false;
         this.player2WantsRematch = false;
     }
@@ -69,15 +84,25 @@ public class GameSession {
     public synchronized boolean addPlayer(Player player) {
         if(player1 == null) {
             player1 = player;
-            player.setDisplayName("Spieler 1");
+            nameOrDefault(player, "Player 1");
             return true;
         } else if(player2 == null) {
             player2 = player;
-            player.setDisplayName("Spieler 2");
+            nameOrDefault(player, "Player 2");
+            // Two players with the same nickname would be indistinguishable on screen
+            if(player.getDisplayName().equalsIgnoreCase(player1.getDisplayName())) {
+                player.setDisplayName(player.getDisplayName() + " (2)");
+            }
             this.status = GameStatus.READY;
             return true;
         }
         return false;
+    }
+
+    private static void nameOrDefault(Player player, String fallback) {
+        if(player.getDisplayName() == null || player.getDisplayName().isBlank()) {
+            player.setDisplayName(fallback);
+        }
     }
 
     /**
@@ -109,6 +134,7 @@ public class GameSession {
             return false;
         }
         this.status = GameStatus.RUNNING;
+        this.round++;
         this.startTime = LocalDateTime.now();
         this.endTime = this.startTime.plusSeconds(durationSeconds);
 
@@ -127,10 +153,31 @@ public class GameSession {
 
     /**
      * Thread-safe: Beendet das Spiel
+     * @return true only for the call that actually finished the game (later calls are no-ops)
      */
-    public synchronized void endGame() {
+    public synchronized boolean endGame() {
+        if(this.status == GameStatus.FINISHED) {
+            return false;
+        }
         this.status = GameStatus.FINISHED;
         this.endTime = LocalDateTime.now();
+        cancelScheduledTasks();
+        return true;
+    }
+
+    /**
+     * Registers a task belonging to the current round so it can be cancelled when the round ends
+     */
+    public void addScheduledTask(ScheduledFuture<?> task) {
+        scheduledTasks.add(task);
+    }
+
+    /**
+     * Cancels all pending tasks of the current round (countdown, game timer, connection monitor)
+     */
+    public void cancelScheduledTasks() {
+        scheduledTasks.forEach(task -> task.cancel(false));
+        scheduledTasks.clear();
     }
 
     /**
@@ -164,7 +211,7 @@ public class GameSession {
      */
     public Question getCurrentQuestionForPlayer(Player player) {
         if(player == null) return null;
-        return player.getCurrentQuestion();  // ← Nutze Player's eigene Liste!
+        return player.getCurrentQuestion();
     }
 
     /**
@@ -172,7 +219,7 @@ public class GameSession {
      */
     public String determineWinner() {
         if(player1 == null || player2 == null) {
-            return "Unbekannt";
+            return "Unknown";
         }
 
         int score1 = player1.getScore();
@@ -183,8 +230,12 @@ public class GameSession {
         } else if(score2 > score1) {
             return player2.getDisplayName();
         } else {
-            return "Unentschieden";
+            return "Draw";
         }
+    }
+
+    public boolean isPrivate() {
+        return roomCode != null;
     }
 
     /**
@@ -195,14 +246,6 @@ public class GameSession {
             return false;
         }
         return player1.getScore() == player2.getScore();
-    }
-
-    /**
-     * Setzt Fragen für das Spiel
-     */
-    public synchronized void setQuestions(List<Question> questions) {
-        this.questions.clear();
-        this.questions.addAll(questions);
     }
 
     // Rematch-bezogene Methoden
@@ -281,11 +324,6 @@ public class GameSession {
         this.player1WantsRematch = false;
         this.player2WantsRematch = false;
 
-        // Fragen werden vom Service neu generiert
-        this.questions.clear();
-
         return true;
     }
-
-    // ALLE GETTER AM ENDE WURDEN ENTFERNT - Lombok macht das automatisch!
 }

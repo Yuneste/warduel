@@ -3,15 +3,16 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.springframework.web.socket.WebSocketSession;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 @Getter
 @Setter
-@ToString(exclude = "session")
+@ToString(exclude = {"session", "leaderboardToken"})
 public class Player {
 
     private String playerId;
@@ -20,7 +21,14 @@ public class Player {
     private final AtomicInteger score = new AtomicInteger(0);
     private final AtomicInteger currentQuestionIndex = new AtomicInteger(0);
     private List<Question> questions = new ArrayList<>();
-    private final Set<Integer> answeredQuestions = new HashSet<>();
+    private final Set<Integer> answeredQuestions = ConcurrentHashMap.newKeySet();
+
+    // Post-game stats: every answer of the current round and when the current question appeared
+    private final List<AnswerRecord> answerLog = new CopyOnWriteArrayList<>();
+    private volatile long questionShownAtMillis;
+
+    // Random device token for the leaderboard (only its hash is ever stored); null = anonymous
+    private volatile String leaderboardToken;
 
     public Player(String playerId, WebSocketSession session, String displayName) {
         this.playerId = playerId;
@@ -51,6 +59,7 @@ public class Player {
     public void resetQuestionIndex() {
         this.currentQuestionIndex.set(0);
         this.answeredQuestions.clear();
+        this.answerLog.clear();
     }
 
     public void setQuestions(List<Question> questions) {
