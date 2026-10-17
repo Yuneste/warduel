@@ -12,7 +12,7 @@ Real-time multiplayer math duel: two players race to solve 20 problems in 60 sec
 
 ## Features
 
-- Real-time 1v1 matches via WebSocket: random opponent, or a friend through a private invite link
+- Real-time 1v1 matches via WebSocket: random opponent, or challenge a friend with an invite link or code (they get a popup with 10 seconds to accept)
 - Nicknames, and post-game stats with every answer and how long it took
 - Leaderboard of public games (no accounts: a random device ID, stored only as a SHA-256 hash)
 - Four challenge types: Classic, True or false, Missing number and Which is bigger (fractions, powers, roots); problems get harder through the game and never repeat

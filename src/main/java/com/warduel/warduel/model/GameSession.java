@@ -48,6 +48,9 @@ public class GameSession {
     // Code of a private game shared by link; null for public matchmaking
     private volatile String roomCode;
 
+    // Someone who opened the invite link and is waiting for the host to accept (not a player yet)
+    private volatile Player pendingChallenger;
+
     // Kind of problems for this game (kept for rematches)
     private volatile ChallengeType challengeType = ChallengeType.CLASSIC;
 

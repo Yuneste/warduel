@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "game.duration-seconds=5",
         "game.win-score=3",
+        "game.challenge-timeout-seconds=2",
 })
 class GameWebSocketIntegrationTest {
 
@@ -221,7 +222,103 @@ class GameWebSocketIntegrationTest {
         String code = host.next("ROOM_CREATED").get("roomCode").asText();
         TestPlayer friend = connectOnly();
         friend.send(Map.of("type", "JOIN_GAME", "roomCode", code));
+        host.next("CHALLENGE");
+        host.send(Map.of("type", "CHALLENGE_RESPONSE", "accept", true));
         return new TestPlayer[] {host, friend};
+    }
+
+    // ---------- Challenges ----------
+
+    private String openRoom(TestPlayer host, String name) throws Exception {
+        host.send(Map.of("type", "JOIN_GAME", "playerName", name, "createRoom", true));
+        return host.next("ROOM_CREATED").get("roomCode").asText();
+    }
+
+    @Test
+    void openingAnInviteLinkChallengesTheHostWhoMustAccept() throws Exception {
+        TestPlayer host = connectOnly();
+        String code = openRoom(host, "Yuko");
+        TestPlayer friend = connectOnly();
+        friend.send(Map.of("type", "JOIN_GAME", "playerName", "Kai", "roomCode", code));
+
+        JsonNode challenge = host.next("CHALLENGE");
+        assertThat(challenge.get("fromName").asText()).isEqualTo("Kai");
+        assertThat(challenge.get("timeoutSeconds").asInt()).isEqualTo(2);
+        JsonNode sent = friend.next("CHALLENGE_STATUS");
+        assertThat(sent.get("status").asText()).isEqualTo("SENT");
+        assertThat(sent.get("name").asText()).isEqualTo("Yuko");
+        Thread.sleep(300);
+        assertThat(friend.all("COUNTDOWN")).as("nothing starts before the host accepts").isEmpty();
+
+        host.send(Map.of("type", "CHALLENGE_RESPONSE", "accept", true));
+        assertThat(host.next("GAME_STATE").get("opponentName").asText()).isEqualTo("Kai");
+        friend.next("COUNTDOWN");
+    }
+
+    @Test
+    void declinedChallengeSendsTheFriendBackAndTheLinkStillWorks() throws Exception {
+        TestPlayer host = connectOnly();
+        String code = openRoom(host, "Yuko");
+        TestPlayer friend = connectOnly();
+        friend.send(Map.of("type", "JOIN_GAME", "playerName", "Kai", "roomCode", code));
+        host.next("CHALLENGE");
+
+        host.send(Map.of("type", "CHALLENGE_RESPONSE", "accept", false));
+        JsonNode declined = friend.next("CHALLENGE_STATUS", m -> !m.get("status").asText().equals("SENT"), Duration.ofSeconds(5));
+        assertThat(declined.get("status").asText()).isEqualTo("DECLINED");
+        friend.close();
+
+        TestPlayer again = connectOnly();
+        again.send(Map.of("type", "JOIN_GAME", "playerName", "Kai", "roomCode", code));
+        assertThat(host.next("CHALLENGE").get("fromName").asText()).as("second try reaches the host").isEqualTo("Kai");
+    }
+
+    @Test
+    void unansweredChallengeTimesOutForBoth() throws Exception {
+        TestPlayer host = connectOnly();
+        String code = openRoom(host, "Yuko");
+        TestPlayer friend = connectOnly();
+        friend.send(Map.of("type", "JOIN_GAME", "playerName", "Kai", "roomCode", code));
+        host.next("CHALLENGE");
+
+        JsonNode toFriend = friend.next("CHALLENGE_STATUS", m -> m.get("status").asText().equals("TIMED_OUT"), Duration.ofSeconds(5));
+        assertThat(toFriend.get("name").asText()).isEqualTo("Yuko");
+        assertThat(host.next("CHALLENGE_STATUS").get("status").asText()).isEqualTo("TIMED_OUT");
+
+        host.send(Map.of("type", "CHALLENGE_RESPONSE", "accept", true)); // too late
+        Thread.sleep(300);
+        assertThat(friend.all("COUNTDOWN")).isEmpty();
+    }
+
+    @Test
+    void secondChallengerIsToldTheHostIsBusy() throws Exception {
+        TestPlayer host = connectOnly();
+        String code = openRoom(host, "Yuko");
+        TestPlayer first = connectOnly();
+        first.send(Map.of("type", "JOIN_GAME", "roomCode", code));
+        host.next("CHALLENGE");
+
+        TestPlayer second = connectOnly();
+        second.send(Map.of("type", "JOIN_GAME", "roomCode", code));
+        assertThat(second.next("CHALLENGE_STATUS").get("status").asText()).isEqualTo("BUSY");
+    }
+
+    @Test
+    void challengerLeavingClosesTheHostsPopupAndHostLeavingFreesTheChallenger() throws Exception {
+        TestPlayer host = connectOnly();
+        String code = openRoom(host, "Yuko");
+        TestPlayer friend = connectOnly();
+        friend.send(Map.of("type", "JOIN_GAME", "roomCode", code));
+        host.next("CHALLENGE");
+        friend.close();
+        assertThat(host.next("CHALLENGE_STATUS").get("status").asText()).isEqualTo("CANCELLED");
+
+        TestPlayer other = connectOnly();
+        other.send(Map.of("type", "JOIN_GAME", "roomCode", code));
+        host.next("CHALLENGE");
+        host.close();
+        JsonNode left = other.next("CHALLENGE_STATUS", m -> m.get("status").asText().equals("HOST_LEFT"), Duration.ofSeconds(5));
+        assertThat(left.get("name").asText()).isEqualTo("Yuko");
     }
 
     // ---------- Leaderboard ----------
@@ -284,6 +381,8 @@ class GameWebSocketIntegrationTest {
         String code = host.next("ROOM_CREATED").get("roomCode").asText();
         TestPlayer friend = connectOnly();
         friend.send(Map.of("type", "JOIN_GAME", "roomCode", code));
+        host.next("CHALLENGE");
+        host.send(Map.of("type", "CHALLENGE_RESPONSE", "accept", true));
         for(int i = 1; i <= 3; i++) {
             int number = i;
             host.next("QUESTION", m -> m.get("questionNumber").asInt() == number, Duration.ofSeconds(6));
@@ -415,6 +514,8 @@ class GameWebSocketIntegrationTest {
         TestPlayer stranger = connect("Stranger"); // public matchmaking must not pair with the private game
         TestPlayer friend = connectOnly();
         friend.send(Map.of("type", "JOIN_GAME", "playerName", "Friend", "roomCode", code.toLowerCase()));
+        host.next("CHALLENGE");
+        host.send(Map.of("type", "CHALLENGE_RESPONSE", "accept", true));
 
         assertThat(host.next("GAME_STATE").get("opponentName").asText()).isEqualTo("Friend");
         friend.next("COUNTDOWN");

@@ -49,6 +49,10 @@ function setupButtons() {
         [elements.leaderboardButton, () => gameActions.openLeaderboard()],
         [elements.leaderboardBackButton, () => gameActions.closeLeaderboard()],
         [elements.friendBackButton, () => gameActions.closeFriendOptions()],
+        [elements.joinCodeButton, () => gameActions.joinWithCode()],
+        [elements.cancelChallengeButton, () => gameActions.leaveQueue()],
+        [elements.acceptChallengeButton, () => gameActions.answerChallenge(true)],
+        [elements.declineChallengeButton, () => gameActions.answerChallenge(false)],
         [elements.leaveWaitingButton, () => gameActions.leaveQueue()],
         [elements.leaveRoomButton, () => gameActions.leaveQueue()],
         [elements.copyLinkButton, () => gameActions.copyLink()],
@@ -63,6 +67,21 @@ function setupButtons() {
         animations.addHapticFeedback(button);
         button.addEventListener('click', action);
     }
+
+    elements.joinCodeInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            gameActions.joinWithCode();
+        }
+    });
+
+    // Escape declines an open challenge (Enter already presses the focused Accept button)
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && ui.isChallengePopupOpen()) {
+            event.preventDefault();
+            gameActions.answerChallenge(false);
+        }
+    });
 
     // Enter in the name field starts the main action of the lobby
     elements.playerName.addEventListener('keydown', event => {

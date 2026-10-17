@@ -100,23 +100,59 @@ class GameServiceTest {
         GameSession publicGame = service.joinGame(session("stranger"), "Stranger");
         assertThat(publicGame).isNotSameAs(room);
 
-        GameSession joined = service.joinPrivateGame(session("friend"), "Friend", room.getRoomCode().toLowerCase());
-        assertThat(joined).isSameAs(room);
+        var request = service.requestChallenge(session("friend"), "Friend", room.getRoomCode().toLowerCase(), null);
+        assertThat(request.result()).isEqualTo(GameService.ChallengeResult.PENDING);
+        assertThat(room.isFull()).as("not a player until accepted").isFalse();
+        assertThat(service.isPendingChallenger("friend")).isTrue();
+
+        GameSession game = service.acceptChallenge("host");
+        assertThat(game).isSameAs(room);
         assertThat(room.getStatus()).isEqualTo(GameStatus.READY);
         assertThat(room.getPlayer2().getDisplayName()).isEqualTo("Friend");
         assertThat(room.getPlayer2().getQuestions()).hasSize(20);
+        assertThat(service.isPendingChallenger("friend")).isFalse();
+    }
+
+    @Test
+    void declinedChallengeKeepsTheRoomOpen() {
+        GameSession room = service.createPrivateGame(session("host"), "Host");
+        service.requestChallenge(session("friend"), "Friend", room.getRoomCode(), null);
+
+        assertThat(service.declineChallenge("host").getDisplayName()).isEqualTo("Friend");
+        assertThat(room.getPendingChallenger()).isNull();
+        assertThat(service.requestChallenge(session("friend"), "Friend", room.getRoomCode(), null).result())
+                .as("the same friend may try again").isEqualTo(GameService.ChallengeResult.PENDING);
+    }
+
+    @Test
+    void onlyOneChallengerAtATime() {
+        GameSession room = service.createPrivateGame(session("host"), "Host");
+        service.requestChallenge(session("first"), "First", room.getRoomCode(), null);
+
+        assertThat(service.requestChallenge(session("second"), "Second", room.getRoomCode(), null).result())
+                .isEqualTo(GameService.ChallengeResult.BUSY);
+
+        assertThat(service.cancelChallenge("first")).isSameAs(room);
+        assertThat(service.requestChallenge(session("second"), "Second", room.getRoomCode(), null).result())
+                .isEqualTo(GameService.ChallengeResult.PENDING);
     }
 
     @Test
     void roomCodesWorkOnceAndDieWithTheHost() {
         GameSession room = service.createPrivateGame(session("host"), null);
-        service.joinPrivateGame(session("friend"), null, room.getRoomCode());
-        assertThat(service.joinPrivateGame(session("late"), null, room.getRoomCode())).isNull();
+        service.requestChallenge(session("friend"), null, room.getRoomCode(), null);
+        service.acceptChallenge("host");
+        assertThat(service.requestChallenge(session("late"), null, room.getRoomCode(), null).result())
+                .isEqualTo(GameService.ChallengeResult.NOT_FOUND);
 
         GameSession abandoned = service.createPrivateGame(session("host2"), null);
+        service.requestChallenge(session("waiting"), null, abandoned.getRoomCode(), null);
         service.removePlayer("host2");
-        assertThat(service.joinPrivateGame(session("friend2"), null, abandoned.getRoomCode())).isNull();
-        assertThat(service.joinPrivateGame(session("friend3"), null, "XXXXXX")).isNull();
+        assertThat(service.isPendingChallenger("waiting")).as("waiting challenger let go").isFalse();
+        assertThat(service.requestChallenge(session("friend2"), null, abandoned.getRoomCode(), null).result())
+                .isEqualTo(GameService.ChallengeResult.NOT_FOUND);
+        assertThat(service.requestChallenge(session("friend3"), null, "XXXXXX", null).result())
+                .isEqualTo(GameService.ChallengeResult.NOT_FOUND);
     }
 
     @Test

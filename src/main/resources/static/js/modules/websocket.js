@@ -37,7 +37,7 @@ export const websocket = {
         gameState.isConnected = true;
         const { createRoom, roomCode, challengeType, playerToken } = gameState.joinRequest;
         this.send({ type: 'JOIN_GAME', playerName: gameState.playerName, createRoom, roomCode, challengeType, playerToken });
-        ui.showWaiting(createRoom ? 'room' : 'queue');
+        ui.showWaiting(createRoom ? 'room' : roomCode ? 'challenge' : 'queue');
         this.startHeartbeat();
     },
 

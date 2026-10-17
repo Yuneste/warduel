@@ -131,6 +131,15 @@ export const sound = {
         steps.forEach((freq, i) => note(freq, 0.18 + i * 0.07, 0.14, { type: 'triangle', gain: 0.14 }));
     },
 
+    // Someone wants to play: a bright double ding, twice
+    challenge() {
+        if (!ready()) return;
+        [0, 0.5].forEach(offset => {
+            note(NOTES.E6, offset, 0.16, { type: 'sine', gain: 0.16 });
+            note(NOTES.B5, offset + 0.14, 0.24, { type: 'sine', gain: 0.14 });
+        });
+    },
+
     matchFound() {
         if (!ready()) return;
         note(NOTES.G5, 0, 0.1, { gain: 0.16 });

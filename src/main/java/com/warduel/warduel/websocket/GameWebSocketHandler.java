@@ -181,7 +181,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
             // Matchmaking starts with the client's JOIN_GAME (it carries the nickname / room code)
             scheduler.schedule(() -> {
-                if(safeSession.isOpen() && gameService.getGameByPlayerId(playerId) == null) {
+                if(safeSession.isOpen() && gameService.getGameByPlayerId(playerId) == null
+                        && !gameService.isPendingChallenger(playerId)) {
                     log.info("Closing connection {} - no JOIN_GAME within {}s", playerId, JOIN_TIMEOUT_SECONDS);
                     try {
                         safeSession.close(CloseStatus.POLICY_VIOLATION);
@@ -238,6 +239,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "FORFEIT":
                     handleForfeit(session);
                     break;
+                case "CHALLENGE_RESPONSE":
+                    handleChallengeResponse(session, ((ChallengeResponseMessage) baseMsg).isAccept());
+                    break;
                 case "HEARTBEAT":
                     // Just update last message time to keep connection alive
                     // No other action needed
@@ -268,11 +272,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             sendMessage(session, new RoomCreatedMessage(game.getRoomCode()));
             return; // the game starts when the friend joins
         } else if(join.getRoomCode() != null && !join.getRoomCode().isBlank()) {
-            game = gameService.joinPrivateGame(safeSession, join.getPlayerName(), join.getRoomCode());
-            if(game == null) {
-                sendError(session, "Room not found");
-                return;
-            }
+            requestChallenge(session, safeSession, join);
+            return; // the game starts only if the host accepts
         } else {
             game = gameService.joinGame(safeSession, join.getPlayerName());
         }
@@ -286,6 +287,72 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         if(game.isFull()) {
             startGame(game);
         }
+    }
+
+    // ---------- Challenges through invite links ----------
+
+    // The host's answer deadline, by host player id
+    private final Map<String, java.util.concurrent.ScheduledFuture<?>> challengeTimeouts = new ConcurrentHashMap<>();
+
+    private void requestChallenge(WebSocketSession session, WebSocketSession safeSession, JoinGameMessage join) throws IOException {
+        GameService.ChallengeRequest request = gameService.requestChallenge(
+                safeSession, join.getPlayerName(), join.getRoomCode(), join.getPlayerToken());
+        GameSession room = request.room();
+        switch(request.result()) {
+            case NOT_FOUND -> sendError(session, "Room not found");
+            case BUSY -> sendMessage(session, new ChallengeStatusMessage(
+                    ChallengeStatusMessage.Status.BUSY, room.getPlayer1().getDisplayName(), null));
+            case PENDING -> {
+                Player host = room.getPlayer1();
+                Player challenger = room.getPendingChallenger();
+                int timeout = gameConfig.getChallengeTimeoutSeconds();
+                sendMessage(host.getSession(), new ChallengeMessage(challengerName(challenger), timeout));
+                sendMessage(session, new ChallengeStatusMessage(
+                        ChallengeStatusMessage.Status.SENT, host.getDisplayName(), timeout));
+                challengeTimeouts.put(host.getPlayerId(), scheduler.schedule(
+                        () -> challengeTimedOut(host), timeout, TimeUnit.SECONDS));
+            }
+        }
+    }
+
+    private void challengeTimedOut(Player host) {
+        challengeTimeouts.remove(host.getPlayerId());
+        Player challenger = gameService.declineChallenge(host.getPlayerId());
+        if(challenger != null) {
+            sendQuietly(challenger.getSession(), new ChallengeStatusMessage(
+                    ChallengeStatusMessage.Status.TIMED_OUT, host.getDisplayName(), null));
+            sendQuietly(host.getSession(), new ChallengeStatusMessage(
+                    ChallengeStatusMessage.Status.TIMED_OUT, challengerName(challenger), null));
+        }
+    }
+
+    private void handleChallengeResponse(WebSocketSession session, boolean accept) throws IOException {
+        String hostId = session.getId();
+        var timeout = challengeTimeouts.remove(hostId);
+        if(timeout != null) {
+            timeout.cancel(false);
+        }
+        GameSession room = gameService.getGameByPlayerId(hostId);
+        if(room == null || room.getPendingChallenger() == null) {
+            return; // too late: already timed out or cancelled
+        }
+        if(accept) {
+            GameSession game = gameService.acceptChallenge(hostId);
+            if(game != null) {
+                startGame(game);
+            }
+        } else {
+            Player challenger = gameService.declineChallenge(hostId);
+            if(challenger != null) {
+                sendMessage(challenger.getSession(), new ChallengeStatusMessage(
+                        ChallengeStatusMessage.Status.DECLINED, room.getPlayer1().getDisplayName(), null));
+            }
+        }
+    }
+
+    private static String challengerName(Player challenger) {
+        String name = challenger.getDisplayName();
+        return name == null || name.isBlank() ? "A friend" : name;
     }
 
     /**
@@ -488,9 +555,33 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         lastMessageTime.remove(playerId);
         sessions.remove(playerId);
 
+        // A challenger who leaves while waiting: tell the host and close the popup
+        GameSession challengedRoom = gameService.cancelChallenge(playerId);
+        if(challengedRoom != null && challengedRoom.getPlayer1() != null) {
+            var timeout = challengeTimeouts.remove(challengedRoom.getPlayer1().getPlayerId());
+            if(timeout != null) {
+                timeout.cancel(false);
+            }
+            sendQuietly(challengedRoom.getPlayer1().getSession(),
+                    new ChallengeStatusMessage(ChallengeStatusMessage.Status.CANCELLED, null, null));
+            return;
+        }
+
         GameSession game = gameService.getGameByPlayerId(playerId);
         if(game == null) {
             return;
+        }
+
+        // A host who leaves while someone is waiting to be accepted
+        Player waiting = game.getPendingChallenger();
+        if(waiting != null) {
+            var timeout = challengeTimeouts.remove(playerId);
+            if(timeout != null) {
+                timeout.cancel(false);
+            }
+            Player host = gameService.getGameByPlayerId(playerId).getPlayer1();
+            sendQuietly(waiting.getSession(), new ChallengeStatusMessage(ChallengeStatusMessage.Status.HOST_LEFT,
+                    host != null ? host.getDisplayName() : null, null));
         }
 
         // Look the players up before removal: removePlayer() clears the slot

@@ -69,9 +69,28 @@ export const gameActions = {
         connectWith({ createRoom: false, roomCode: gameState.inviteCode });
     },
 
+    // "Got a link or code from a friend?": accepts the whole link or just the 6-character code
+    joinWithCode() {
+        const raw = elements.joinCodeInput.value.trim();
+        const fromLink = raw.match(/[?&]room=([A-Za-z0-9]{6})\b/);
+        const code = (fromLink ? fromLink[1] : raw.replace(/\s+/g, '')).toUpperCase();
+        if (!/^[A-HJKMNP-Z2-9]{6}$/.test(code)) { // same characters as the server: no I, L, O, 0 or 1
+            ui.showJoinCodeError('That doesn\'t look like a code. Codes have 6 letters and numbers, like K7QM2X.');
+            return;
+        }
+        gameState.inviteCode = code;
+        connectWith({ createRoom: false, roomCode: code });
+    },
+
+    answerChallenge(accept) {
+        ui.hideChallengePopup();
+        websocket.send({ type: 'CHALLENGE_RESPONSE', accept });
+    },
+
     // Remove ?room=... so a reload or "back to menu" doesn't reuse a spent invite
     forgetInvite() {
         gameState.inviteCode = null;
+        gameState.inviteHost = null;
         if (window.location.search) {
             history.replaceState(null, '', window.location.pathname);
         }

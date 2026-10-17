@@ -7,6 +7,12 @@ const byId = id => document.getElementById(id);
 
 export const elements = {
     toast: byId('toast'),
+    challengePopup: byId('challenge-popup'),
+    challengeFrom: byId('challenge-from'),
+    challengePopupSeconds: byId('challenge-popup-seconds'),
+    challengePopupFill: byId('challenge-popup-fill'),
+    acceptChallengeButton: byId('accept-challenge-button'),
+    declineChallengeButton: byId('decline-challenge-button'),
     muteButton: byId('mute-button'),
 
     // Screens
@@ -29,10 +35,18 @@ export const elements = {
     friendOptions: byId('friend-options'),
     createRoomButton: byId('create-room-button'),
     friendBackButton: byId('friend-back-button'),
+    joinCodeInput: byId('join-code-input'),
+    joinCodeButton: byId('join-code-button'),
+    joinCodeError: byId('join-code-error'),
 
     // Queue, private room and countdown
     queueState: byId('queue-state'),
     roomState: byId('room-state'),
+    challengeState: byId('challenge-state'),
+    challengeStateTitle: byId('challenge-state-title'),
+    challengeStateText: byId('challenge-state-text'),
+    challengeStateFill: byId('challenge-state-fill'),
+    cancelChallengeButton: byId('cancel-challenge-button'),
     roomLink: byId('room-link'),
     roomCode: byId('room-code'),
     copyLinkButton: byId('copy-link-button'),

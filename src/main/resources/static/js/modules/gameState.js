@@ -20,6 +20,7 @@ export const gameState = {
     // Who we are and how we want to join (sent as JOIN_GAME once connected)
     playerName: '',
     inviteCode: inviteCode ? inviteCode.trim().toUpperCase() : null,
+    inviteHost: null, // name of the friend behind the invite, once known (for "Challenge Yuko again?")
     joinRequest: { createRoom: false, roomCode: null, challengeType: null },
     yourName: 'You',
     opponentName: 'Opponent',

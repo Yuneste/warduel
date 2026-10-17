@@ -139,27 +139,86 @@ public class GameService {
         return game;
     }
 
+    public enum ChallengeResult { PENDING, NOT_FOUND, BUSY }
+
+    public record ChallengeRequest(ChallengeResult result, GameSession room) {
+    }
+
+    // Challengers waiting for a host's answer, by their player id
+    private final Map<String, GameSession> pendingChallenges = new ConcurrentHashMap<>();
+
     /**
-     * Joins a friend's private game
-     * @return the now full game, or null if the code is unknown, expired or the game is already full
+     * Someone opened an invite link: they wait as the room's pending challenger until the host answers
      */
-    public synchronized GameSession joinPrivateGame(WebSocketSession session, String playerName, String roomCode) {
+    public synchronized ChallengeRequest requestChallenge(WebSocketSession session, String playerName,
+                                                          String roomCode, String leaderboardToken) {
         String playerId = session.getId();
-        if(playerToGame.containsKey(playerId)) {
-            return playerToGame.get(playerId);
+        GameSession room = roomCode == null ? null : privateRooms.get(roomCode.trim().toUpperCase());
+        if(playerToGame.containsKey(playerId) || pendingChallenges.containsKey(playerId)
+                || room == null || room.isFull() || room.getStatus() != GameSession.GameStatus.WAITING) {
+            return new ChallengeRequest(ChallengeResult.NOT_FOUND, null);
+        }
+        if(room.getPendingChallenger() != null) {
+            return new ChallengeRequest(ChallengeResult.BUSY, room);
         }
 
-        GameSession game = roomCode == null ? null : privateRooms.get(roomCode.trim().toUpperCase());
-        if(game == null || game.isFull() || game.getStatus() != GameSession.GameStatus.WAITING) {
+        Player challenger = new Player(playerId, session, PlayerNames.sanitize(playerName));
+        challenger.setLeaderboardToken(leaderboardToken);
+        room.setPendingChallenger(challenger);
+        pendingChallenges.put(playerId, room);
+        log.info("Player {} challenges the host of room {}", playerId, room.getRoomCode());
+        return new ChallengeRequest(ChallengeResult.PENDING, room);
+    }
+
+    /**
+     * The host accepts: the challenger becomes player 2 and the room code is used up
+     * @return the full game, or null if there was no pending challenge
+     */
+    public synchronized GameSession acceptChallenge(String hostId) {
+        GameSession room = playerToGame.get(hostId);
+        Player challenger = room == null ? null : room.getPendingChallenger();
+        if(challenger == null || room.getStatus() != GameSession.GameStatus.WAITING) {
             return null;
         }
+        room.setPendingChallenger(null);
+        pendingChallenges.remove(challenger.getPlayerId());
+        room.addPlayer(challenger);
+        playerToGame.put(challenger.getPlayerId(), room);
+        privateRooms.remove(room.getRoomCode()); // a room code works for one game
+        prepareGame(room);
+        log.info("Challenge accepted, private game {} starts", room.getGameId());
+        return room;
+    }
 
-        game.addPlayer(new Player(playerId, session, PlayerNames.sanitize(playerName)));
-        playerToGame.put(playerId, game);
-        privateRooms.remove(game.getRoomCode()); // a room code works once
-        prepareGame(game);
-        log.info("Player {} joined private game {}", playerId, game.getGameId());
-        return game;
+    /**
+     * The host declines (or didn't answer in time). The room stays open for another try.
+     * @return the challenger who was turned down, or null if there was none
+     */
+    public synchronized Player declineChallenge(String hostId) {
+        GameSession room = playerToGame.get(hostId);
+        Player challenger = room == null ? null : room.getPendingChallenger();
+        if(challenger != null) {
+            room.setPendingChallenger(null);
+            pendingChallenges.remove(challenger.getPlayerId());
+        }
+        return challenger;
+    }
+
+    /**
+     * The challenger gave up waiting (cancelled or disconnected)
+     * @return the room they were waiting for, or null
+     */
+    public synchronized GameSession cancelChallenge(String challengerId) {
+        GameSession room = pendingChallenges.remove(challengerId);
+        if(room != null && room.getPendingChallenger() != null
+                && room.getPendingChallenger().getPlayerId().equals(challengerId)) {
+            room.setPendingChallenger(null);
+        }
+        return room;
+    }
+
+    public boolean isPendingChallenger(String playerId) {
+        return pendingChallenges.containsKey(playerId);
     }
 
     /**
@@ -230,9 +289,14 @@ public class GameService {
             boolean removed = game.removePlayer(playerId);
             playerToGame.remove(playerId);
 
-            // A private game whose host left can no longer be joined
+            // A private game whose host left can no longer be joined; a waiting challenger is let go
             if(game.getRoomCode() != null) {
                 privateRooms.remove(game.getRoomCode(), game);
+                Player challenger = game.getPendingChallenger();
+                if(challenger != null) {
+                    pendingChallenges.remove(challenger.getPlayerId());
+                    game.setPendingChallenger(null);
+                }
             }
 
             // CRITICAL: Clear waitingGame if it's this game (prevents ghost matchmaking)

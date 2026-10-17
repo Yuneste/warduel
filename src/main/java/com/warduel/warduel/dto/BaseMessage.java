@@ -25,7 +25,10 @@ import lombok.Setter;
         @JsonSubTypes.Type(value = RematchMessage.class, name = "REMATCH"),
         @JsonSubTypes.Type(value = ForfeitMessage.class, name = "FORFEIT"),
         @JsonSubTypes.Type(value = HeartbeatMessage.class, name = "HEARTBEAT"),
-        @JsonSubTypes.Type(value = RoomCreatedMessage.class, name = "ROOM_CREATED")
+        @JsonSubTypes.Type(value = RoomCreatedMessage.class, name = "ROOM_CREATED"),
+        @JsonSubTypes.Type(value = ChallengeMessage.class, name = "CHALLENGE"),
+        @JsonSubTypes.Type(value = ChallengeStatusMessage.class, name = "CHALLENGE_STATUS"),
+        @JsonSubTypes.Type(value = ChallengeResponseMessage.class, name = "CHALLENGE_RESPONSE")
 })
 public abstract class BaseMessage {
 

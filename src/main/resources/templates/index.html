@@ -20,6 +20,18 @@
     <!-- Messages from the game (opponent left, connection lost, ...) -->
     <p id="toast" class="toast" role="alert" hidden></p>
 
+    <!-- Someone opened your invite link -->
+    <div id="challenge-popup" class="challenge-popup" role="alertdialog" aria-modal="false"
+         aria-labelledby="challenge-popup-title" aria-describedby="challenge-popup-text" hidden>
+        <p id="challenge-popup-title" class="challenge-popup-title"><span id="challenge-from">A friend</span> challenges you!</p>
+        <p id="challenge-popup-text" class="challenge-popup-text">Accept within <span id="challenge-popup-seconds">10</span> seconds</p>
+        <div class="challenge-bar" aria-hidden="true"><span id="challenge-popup-fill"></span></div>
+        <div class="challenge-actions">
+            <button id="accept-challenge-button" class="btn challenge-accept" type="button">Accept</button>
+            <button id="decline-challenge-button" class="btn challenge-decline" type="button">Decline</button>
+        </div>
+    </div>
+
     <!-- Chalk dust and streak call-outs are drawn here -->
     <div id="effects-layer" class="effects-layer" aria-hidden="true"></div>
 
@@ -57,6 +69,16 @@
                     <label class="mode-chip"><input type="radio" name="mode" value="COMPARE"><span>Which is bigger?</span></label>
                 </div>
                 <button id="create-room-button" class="btn btn-primary" type="button">Create invite link</button>
+                <div class="join-code">
+                    <label class="name-label" for="join-code-input">Got a link or code from a friend?</label>
+                    <div class="join-code-row">
+                        <input id="join-code-input" class="share-link join-code-input" type="text"
+                               placeholder="Link or code" autocomplete="off"
+                               autocapitalize="characters" spellcheck="false">
+                        <button id="join-code-button" class="btn btn-secondary join-code-button" type="button">Join</button>
+                    </div>
+                    <p id="join-code-error" class="join-code-error" role="alert" hidden></p>
+                </div>
                 <button id="friend-back-button" class="link-button" type="button">Back</button>
             </fieldset>
             <button id="leaderboard-button" class="link-button" type="button">Leaderboard</button>
@@ -83,7 +105,7 @@
         </div>
         <div id="room-state" class="room-state" hidden>
             <h2 class="chalk waiting-title">Invite a friend</h2>
-            <p class="muted">Send them this link. The game starts as soon as they open it.</p>
+            <p class="muted">Send them this link. When they open it, you get a challenge to accept.</p>
             <div class="share-box">
                 <input id="room-link" class="share-link" type="text" readonly aria-label="Invite link">
                 <button id="copy-link-button" class="btn btn-primary share-button" type="button">Copy link</button>
@@ -91,6 +113,12 @@
             <button id="share-link-button" class="btn btn-secondary" type="button" hidden>Share…</button>
             <p class="muted room-code-line">Room code <span id="room-code" class="chalk room-code"></span></p>
             <button id="leave-room-button" class="btn btn-secondary" type="button">Cancel</button>
+        </div>
+        <div id="challenge-state" class="challenge-state" hidden>
+            <h2 id="challenge-state-title" class="chalk waiting-title">Sending your challenge<span class="dots" aria-hidden="true"></span></h2>
+            <p id="challenge-state-text" class="muted" aria-live="polite"></p>
+            <div class="challenge-bar" aria-hidden="true"><span id="challenge-state-fill"></span></div>
+            <button id="cancel-challenge-button" class="btn btn-secondary" type="button">Cancel</button>
         </div>
         <div id="countdown-state" class="countdown-state" hidden>
             <p class="matchup"><span id="matchup-you" class="you-color">You</span> <span class="chalk vs">vs</span> <span id="matchup-them" class="them-color">Opponent</span></p>

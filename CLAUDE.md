@@ -45,7 +45,10 @@ When you change game behavior, add or adjust a scenario there. When changing por
 
 ### Backend (`src/main/java/com/warduel/warduel/`)
 
-- **Protocol for joining:** after connecting, the client must send `JOIN_GAME` with an optional `playerName`. To create a private game it adds `createRoom: true` (the server answers `ROOM_CREATED {roomCode}`); to join one it adds `roomCode`. Connections that don't join within 15s are closed. Before the countdown, both players get `GAME_STATE READY` with `yourName`/`opponentName`. `GAME_OVER` carries `yourStats` (including every answer with its timing) and `opponentStats` (totals only).
+- **Protocol for joining:** after connecting, the client must send `JOIN_GAME` with an optional `playerName`. To create a private game it adds `createRoom: true` (the server answers `ROOM_CREATED {roomCode}`). Opening someone's link (or entering its code in the lobby) sends `roomCode`, which **challenges** the host:
+  - the host gets `CHALLENGE {fromName, timeoutSeconds}` (a popup) and answers with `CHALLENGE_RESPONSE {accept}`
+  - the challenger gets `CHALLENGE_STATUS` with one of SENT, DECLINED, TIMED_OUT, BUSY or HOST_LEFT; the host gets CANCELLED or TIMED_OUT
+  - only an accept starts the game; otherwise the link stays valid. The pending challenger waits in `GameSession.pendingChallenger`, which is not a player, and the timeout is `game.challenge-timeout-seconds` (default 10). Connections that don't join within 15s are closed. Before the countdown, both players get `GAME_STATE READY` with `yourName`/`opponentName`. `GAME_OVER` carries `yourStats` (including every answer with its timing) and `opponentStats` (totals only).
 - **`websocket/GameWebSocketHandler`** is the core of the game (~800 lines). It is a `TextWebSocketHandler` registered at `/game` in `WebSocketConfig`, which reads its allowed origins from `app.allowed-origins`. It owns:
   - the game flow: countdown → start → per-player question delivery → score updates → timer-driven `endGame` → game over / rematch / forfeit
   - a shared `ScheduledExecutorService` for all delayed work; never block with `Thread.sleep`

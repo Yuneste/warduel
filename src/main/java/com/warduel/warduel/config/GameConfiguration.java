@@ -68,6 +68,11 @@ public class GameConfiguration {
     private String publicChallengeType = "";
 
     /**
+     * Seconds the creator of an invite link has to accept a challenge
+     */
+    private int challengeTimeoutSeconds = 10;
+
+    /**
      * Prüft ob vorzeitiger Sieg aktiviert ist
      */
     public boolean hasWinScore() {

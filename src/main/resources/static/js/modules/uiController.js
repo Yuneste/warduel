@@ -12,6 +12,26 @@ const URGENT_SECONDS = 5;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 let toastTimeout = null;
+let challengeTimer = null;
+let titleTimer = null;
+const PAGE_TITLE = document.title;
+
+// Counts down on screen and drains a chalk bar over the given seconds
+function runCountdown(fill, seconds, onTick) {
+    clearInterval(challengeTimer);
+    fill.classList.remove('is-running');
+    fill.style.setProperty('--challenge-seconds', `${seconds}s`);
+    void fill.offsetWidth;
+    fill.classList.add('is-running');
+    const end = Date.now() + seconds * 1000;
+    const tick = () => {
+        const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+        onTick(left);
+        if (left === 0) clearInterval(challengeTimer);
+    };
+    tick();
+    challengeTimer = setInterval(tick, 250);
+}
 
 // Small, repeatable wobble so tally strokes look hand-drawn but don't jump between renders
 const wobble = (i, amount = 1.2) => (((i * 37) % 7) - 3) * amount / 3;
@@ -86,7 +106,11 @@ export const ui = {
         this.showScreen('lobbyArea');
         const invited = Boolean(gameState.inviteCode);
         elements.inviteBanner.hidden = !invited;
+        elements.inviteBanner.textContent = gameState.inviteHost
+            ? `Challenge ${gameState.inviteHost} again?`
+            : "You've been invited to a private game.";
         elements.joinInviteButton.hidden = !invited;
+        elements.joinInviteButton.textContent = gameState.inviteHost ? 'Send the challenge again' : 'Join the game';
         elements.playButton.hidden = invited;
         elements.friendButton.textContent = invited ? 'Find a random opponent instead' : 'Play a friend instead';
         this.showFriendOptions(false);
@@ -103,6 +127,8 @@ export const ui = {
 
     // "Play a friend": swap the lobby buttons for the challenge picker
     showFriendOptions(show) {
+        elements.lobbyArea.classList.toggle('is-friend', show);
+        elements.joinCodeError.hidden = true;
         elements.friendOptions.hidden = !show;
         elements.friendButton.hidden = show;
         elements.playButton.hidden = show || Boolean(gameState.inviteCode);
@@ -162,16 +188,84 @@ export const ui = {
         elements.leaderboardStatus.textContent = "Couldn't load the leaderboard. Try again in a moment.";
     },
 
+    // mode: 'queue' (public matchmaking), 'room' (waiting for an invited friend)
+    // or 'challenge' (opened a friend's link, waiting for them to accept)
     showWaiting(mode = 'queue') {
         this.showScreen('waitingArea');
         elements.queueState.hidden = mode !== 'queue';
         elements.roomState.hidden = mode !== 'room';
+        elements.challengeState.hidden = mode !== 'challenge';
         elements.countdownState.hidden = true;
+        if (mode === 'challenge') {
+            elements.challengeStateTitle.firstChild.textContent = 'Sending your challenge';
+            elements.challengeStateTitle.querySelector('.dots').hidden = false;
+            elements.challengeStateText.textContent = '';
+            elements.challengeStateFill.classList.remove('is-running');
+        }
         if (mode === 'room') {
             elements.roomLink.value = 'Creating your link…';
             elements.roomCode.textContent = '';
             elements.copyLinkButton.disabled = true;
         }
+    },
+
+    showJoinCodeError(text) {
+        elements.joinCodeError.textContent = text;
+        elements.joinCodeError.hidden = false;
+        elements.joinCodeInput.focus();
+    },
+
+    // Challenger: the host has `seconds` to accept
+    showChallengeSent(hostName, seconds) {
+        elements.challengeStateTitle.firstChild.textContent = `Waiting for ${hostName}`;
+        elements.challengeStateTitle.querySelector('.dots').hidden = true; // the countdown shows progress now
+        runCountdown(elements.challengeStateFill, seconds, left => {
+            elements.challengeStateText.textContent = left > 0
+                ? `${hostName} has ${left} ${left === 1 ? 'second' : 'seconds'} to accept your challenge.`
+                : `Still no answer from ${hostName}…`;
+        });
+    },
+
+    stopChallengeCountdown() {
+        clearInterval(challengeTimer);
+    },
+
+    // Host: someone opened the invite link
+    showChallengePopup(fromName, seconds) {
+        elements.challengeFrom.textContent = fromName;
+        elements.challengePopup.hidden = false;
+        // restart the drop-in animation if a second challenge follows a first one
+        elements.challengePopup.style.animation = 'none';
+        void elements.challengePopup.offsetWidth;
+        elements.challengePopup.style.animation = '';
+        runCountdown(elements.challengePopupFill, seconds, left => {
+            elements.challengePopupSeconds.textContent = String(left);
+        });
+        elements.acceptChallengeButton.focus();
+        this.flashTitle(`${fromName} challenges you!`);
+    },
+
+    hideChallengePopup() {
+        elements.challengePopup.hidden = true;
+        clearInterval(challengeTimer);
+        this.flashTitle(null);
+    },
+
+    isChallengePopupOpen() {
+        return !elements.challengePopup.hidden;
+    },
+
+    // Alternate the tab title so a challenge is noticed in a background tab
+    flashTitle(text) {
+        clearInterval(titleTimer);
+        document.title = PAGE_TITLE;
+        if (!text) return;
+        let on = true;
+        document.title = text;
+        titleTimer = setInterval(() => {
+            on = !on;
+            document.title = on ? text : PAGE_TITLE;
+        }, 1000);
     },
 
     showRoomLink(code, url) {

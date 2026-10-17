@@ -30,6 +30,12 @@ export function handleMessage(message) {
         case 'ROOM_CREATED':
             handleRoomCreated(message);
             break;
+        case 'CHALLENGE':
+            handleChallenge(message);
+            break;
+        case 'CHALLENGE_STATUS':
+            handleChallengeStatus(message);
+            break;
         case 'COUNTDOWN':
             handleCountdown(message);
             break;
@@ -58,7 +64,57 @@ function handleRoomCreated(message) {
     ui.showRoomLink(message.roomCode, url);
 }
 
+// Host: someone opened the invite link
+function handleChallenge(message) {
+    ui.showChallengePopup(message.fromName, message.timeoutSeconds);
+    sound.challenge();
+    animations.vibrate([60, 60, 60]);
+}
+
+function handleChallengeStatus(message) {
+    const name = message.name || 'Your friend';
+    const backToLobby = text => {
+        ui.stopChallengeCountdown();
+        gameActions.leaveQueue();
+        ui.showToast(text, 6000);
+    };
+    switch (message.status) {
+        // challenger side
+        case 'SENT':
+            gameState.inviteHost = message.name || null;
+            ui.showChallengeSent(name, message.timeoutSeconds);
+            break;
+        case 'DECLINED':
+            backToLobby(`${name} declined your challenge. You can try again with the same link.`);
+            break;
+        case 'TIMED_OUT':
+            if (ui.isChallengePopupOpen()) {
+                // host side: didn't answer in time
+                ui.hideChallengePopup();
+                ui.showToast(`You didn't answer ${name}'s challenge in time.`);
+            } else {
+                backToLobby(`${name} didn't answer in time. You can try again with the same link.`);
+            }
+            break;
+        case 'BUSY':
+            backToLobby(`${name} is answering another challenge right now. Try again in a moment.`);
+            break;
+        case 'HOST_LEFT':
+            gameActions.forgetInvite();
+            backToLobby(`${name} closed the game. Ask for a new link.`);
+            break;
+        // host side
+        case 'CANCELLED':
+            ui.hideChallengePopup();
+            ui.showToast('Your friend cancelled the challenge. Your link still works.');
+            break;
+        default:
+            console.warn('Unknown challenge status:', message.status);
+    }
+}
+
 function handleGameState(message) {
+    ui.hideChallengePopup();
     gameState.currentGameState = message.gameStatus;
     if (message.yourName) ui.setNames(message.yourName, message.opponentName);
     if (message.challengeType) ui.setChallenge(message.challengeType);
