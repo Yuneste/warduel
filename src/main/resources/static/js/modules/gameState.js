@@ -3,7 +3,17 @@
  * Centralized state for the game
  */
 
+// Game settings rendered into <body data-*> by the server
+const settings = document.body.dataset;
+
 export const gameState = {
+    // Settings from the server (fall back to the defaults if the page was opened without them)
+    config: {
+        questionsPerGame: Number(settings.questions) || 20,
+        durationSeconds: Number(settings.duration) || 60,
+        winScore: Number(settings.winScore) || 20
+    },
+
     // Connection
     socket: null,
     isConnected: false,
@@ -15,10 +25,11 @@ export const gameState = {
 
     // Rematch
     rematchRequested: false,
-    opponentWantsRematch: false,
+    opponentGone: false, // the opponent left; rematch is impossible
 
     // Input
     currentAnswer: '',
+    awaitingResult: false, // an answer was sent and its SCORE_UPDATE hasn't arrived yet
 
     // Getters
     getSocket() {
@@ -38,8 +49,9 @@ export const gameState = {
         this.isConnected = false;
         this.currentGameState = 'CONNECTING';
         this.currentAnswer = '';
+        this.awaitingResult = false;
         this.rematchRequested = false;
-        this.opponentWantsRematch = false;
+        this.opponentGone = false;
         this.stopTimer();
     },
 
@@ -50,12 +62,13 @@ export const gameState = {
 
     getRemainingTime() {
         if (!this.gameEndTime) return 0;
-        return Math.max(0, Math.floor((this.gameEndTime - Date.now()) / 1000));
+        return Math.max(0, Math.ceil((this.gameEndTime - Date.now()) / 1000));
     },
 
     startTimer(callback) {
         this.stopTimer();
-        this.timerInterval = setInterval(callback, 1000);
+        callback();
+        this.timerInterval = setInterval(callback, 250);
     },
 
     stopTimer() {

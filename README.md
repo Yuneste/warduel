@@ -12,7 +12,8 @@ Real-time multiplayer math quiz game where two players compete to solve 20 quest
 - Random math questions (addition, subtraction, multiplication, division)
 - 60-second rounds with live score updates
 - Rematch system for consecutive games
-- Mobile-friendly with haptic feedback
+- Chalkboard design built phone-first: scores drawn as tally marks, on-screen number pad with haptic feedback
+- Full keyboard play on desktop (digits, Backspace, minus, Enter)
 
 ## Tech Stack
 
@@ -25,8 +26,8 @@ Real-time multiplayer math quiz game where two players compete to solve 20 quest
 **Frontend:**
 - Vanilla JavaScript ES6 modules
 - WebSocket API for real-time communication
-- CSS3 animations
-- Responsive design
+- Hand-written CSS with design tokens, no framework
+- Self-hosted fonts (no third-party requests)
 
 ## Quick Start
 

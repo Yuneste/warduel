@@ -4,211 +4,122 @@
  */
 
 import { gameState } from './gameState.js';
+import { elements } from './domElements.js';
 import { ui } from './uiController.js';
 import { handleMessage } from './messageHandlers.js';
 
+const HEARTBEAT_MS = 5000;   // server closes connections that are silent for 10s
+const RELOAD_DELAY_MS = 2000;
+
 // Track if connection was intentionally closed
 let intentionalClose = false;
-
-// Heartbeat interval
 let heartbeatInterval = null;
 
 export const websocket = {
-    // Connect to server
     connect() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/game`;
+        const socket = new WebSocket(`${protocol}//${window.location.host}/game`);
+        gameState.setSocket(socket);
+        intentionalClose = false;
+        elements.playButton.disabled = true;
 
-        console.log('Connecting to:', wsUrl);
-        ui.updateStatus('Connecting to server...');
-
-        try {
-            const socket = new WebSocket(wsUrl);
-            gameState.setSocket(socket);
-
-            socket.onopen = this.handleOpen.bind(this);
-            socket.onmessage = this.handleMessage.bind(this);
-            socket.onerror = this.handleError.bind(this);
-            socket.onclose = this.handleClose.bind(this);
-        } catch (error) {
-            console.error('WebSocket error:', error);
-            ui.showError('Connection error!');
-        }
+        // Events of a replaced socket (e.g. after "Find a new opponent") are ignored
+        const current = handler => event => {
+            if (socket === gameState.getSocket()) handler.call(this, event);
+        };
+        socket.onopen = current(this.handleOpen);
+        socket.onmessage = current(this.handleMessage);
+        socket.onerror = current(this.handleError);
+        socket.onclose = current(this.handleClose);
     },
 
-    // Connection opened
     handleOpen() {
-        console.log('WebSocket connected');
         gameState.isConnected = true;
-        intentionalClose = false; // Reset flag on successful connection
         ui.showWaiting();
-
-        // Start heartbeat
         this.startHeartbeat();
     },
 
-    // Message received
     handleMessage(event) {
         try {
-            const message = JSON.parse(event.data);
-            console.log('🔵 Received:', message.type, message);
-            handleMessage(message);
+            handleMessage(JSON.parse(event.data));
         } catch (error) {
-            console.error('Error parsing message:', error);
+            console.error('Error handling message:', error);
         }
     },
 
-    // Connection error
     handleError(event) {
         console.error('WebSocket error:', event);
-        ui.showError('Connection error!');
-    },
-
-    // Connection closed
-    handleClose(event) {
-        console.log('WebSocket closed:', event);
-        gameState.isConnected = false;
-
-        // Don't show error if game already finished
-        if (gameState.currentGameState !== 'FINISHED') {
-            ui.showError('Connection lost!');
+        if (!gameState.isConnected) {
+            // Never got connected: stay in the lobby and let the player retry
+            elements.playButton.disabled = false;
+            ui.showToast("Couldn't reach the game server. Try again in a moment.");
         }
     },
 
-    // Send message to server
+    handleClose() {
+        const wasConnected = gameState.isConnected;
+        gameState.isConnected = false;
+        this.stopHeartbeat();
+
+        if (intentionalClose || !wasConnected || gameState.currentGameState === 'FINISHED') return;
+        this.returnToLobby('Connection lost. Back to the lobby…');
+    },
+
     send(message) {
         if (gameState.isSocketConnected()) {
             gameState.getSocket().send(JSON.stringify(message));
         } else {
-            console.error('Cannot send - not connected');
-            ui.showError('No connection!');
+            ui.showError('Not connected to the game server.');
         }
     },
 
-    // Close connection
     close() {
         intentionalClose = true;
-        this.stopHeartbeat(); // Stop heartbeat before closing
+        this.stopHeartbeat();
         const socket = gameState.getSocket();
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (socket && socket.readyState <= WebSocket.OPEN) {
             socket.close();
         }
     },
 
-    // Check if connection is alive
-    isConnected() {
-        return gameState.isSocketConnected();
+    returnToLobby(message) {
+        ui.showToast(message, 0);
+        setTimeout(() => location.reload(), RELOAD_DELAY_MS);
     },
 
-    // Setup page visibility detection (for mobile lock/unlock)
+    // Phones kill sockets while locked; check again when the page becomes visible
     setupVisibilityDetection() {
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                // Page became visible (user unlocked phone or switched back to tab)
-                console.log('Page became visible, checking connection...');
-                this.checkConnectionOnVisibilityChange();
-            }
-        });
-    },
-
-    // Check connection when page becomes visible
-    checkConnectionOnVisibilityChange() {
-        const socket = gameState.getSocket();
-
-        console.log('Checking connection:', {
-            hasSocket: !!socket,
-            readyState: socket ? socket.readyState : 'no socket',
-            intentionalClose,
-            currentGameState: gameState.currentGameState
-        });
-
-        // Check if connection is dead
-        const isDisconnected = !socket ||
-                             socket.readyState === WebSocket.CLOSED ||
-                             socket.readyState === WebSocket.CLOSING;
-
-        if (isDisconnected && !intentionalClose) {
-            console.warn('Connection lost! Socket state:', socket ? socket.readyState : 'null');
-
-            // Always reload if we were in a game or waiting
-            if (gameState.currentGameState !== 'CONNECTING') {
-                ui.showError('Connection lost. Returning to lobby...');
-
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
-            }
-        } else if (socket && socket.readyState === WebSocket.OPEN) {
-            console.log('Connection is alive');
-        }
-    },
-
-    // Force check connection state (call before important actions)
-    forceConnectionCheck() {
-        const socket = gameState.getSocket();
-
-        if (!socket || socket.readyState !== WebSocket.OPEN) {
-            console.error('Connection check failed!');
-            ui.showError('Connection lost! Returning to lobby...');
-
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-
-            return false;
-        }
-
-        return true;
-    },
-
-    // Start heartbeat to detect silent disconnections
-    startHeartbeat() {
-        this.stopHeartbeat(); // Clear any existing heartbeat
-
-        console.log('🔥 Heartbeat started - checking connection and sending pings every 5 seconds');
-
-        // Check connection and send heartbeat every 5 seconds
-        heartbeatInterval = setInterval(() => {
+            if (document.hidden || intentionalClose) return;
             const socket = gameState.getSocket();
-            const readyState = socket ? socket.readyState : -1;
-
-            // WebSocket.OPEN = 1, CLOSED = 3, CLOSING = 2
-            if (!socket || readyState !== 1) {
-                console.error('💀 Heartbeat detected disconnection! ReadyState:', readyState);
-                this.stopHeartbeat();
-
-                // Only show error if not intentionally closed and not in lobby
-                if (!intentionalClose) {
-                    console.error('Forcing reload due to disconnection');
-                    ui.showError('Connection lost! Returning to lobby...');
-
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
-                }
+            const dead = socket && socket.readyState >= WebSocket.CLOSING;
+            if (dead && gameState.currentGameState !== 'CONNECTING') {
+                this.returnToLobby('Connection lost while the screen was off. Back to the lobby…');
             }
-            else {
-                // Connection is alive - send heartbeat to server
-                // This keeps the connection alive even if player doesn't answer questions
-                try {
-                    this.send({ type: 'HEARTBEAT' });
-
-                    // Only log every ~20% of the time to reduce noise
-                    if (Math.random() < 0.2) {
-                        console.log('💚 Heartbeat: Connection alive, ping sent');
-                    }
-                } catch (error) {
-                    console.error('Error sending heartbeat:', error);
-                }
-            }
-        }, 5000); // Check and ping every 5 seconds
+        });
     },
 
-    // Stop heartbeat
+    // Call before actions that need the server
+    forceConnectionCheck() {
+        if (gameState.isSocketConnected()) return true;
+        this.returnToLobby('Connection lost. Back to the lobby…');
+        return false;
+    },
+
+    startHeartbeat() {
+        this.stopHeartbeat();
+        heartbeatInterval = setInterval(() => {
+            if (gameState.isSocketConnected()) {
+                this.send({ type: 'HEARTBEAT' });
+            } else if (!intentionalClose) {
+                this.stopHeartbeat();
+                this.returnToLobby('Connection lost. Back to the lobby…');
+            }
+        }, HEARTBEAT_MS);
+    },
+
     stopHeartbeat() {
-        if (heartbeatInterval) {
-            clearInterval(heartbeatInterval);
-            heartbeatInterval = null;
-        }
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
     }
 };

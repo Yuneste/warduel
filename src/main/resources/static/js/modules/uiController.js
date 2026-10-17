@@ -1,234 +1,221 @@
 /**
  * UI Controller
- * Handles all DOM updates and visual feedback
+ * Handles all DOM updates and visual feedback (no game logic)
  */
 
 import { elements } from './domElements.js';
 import { gameState } from './gameState.js';
 
+const SCREENS = ['lobbyArea', 'waitingArea', 'gameArea', 'resultArea'];
+const URGENT_SECONDS = 5;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+let toastTimeout = null;
+
+// Small, repeatable wobble so tally strokes look hand-drawn but don't jump between renders
+const wobble = (i, amount = 1.2) => (((i * 37) % 7) - 3) * amount / 3;
+
+/** Builds the strokes of one tally group: up to four verticals, the fifth crosses them */
+function tallyGroup(strokes, firstIndex, newIndex) {
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 30 32');
+    svg.setAttribute('aria-hidden', 'true');
+    for (let s = 0; s < strokes; s++) {
+        const i = firstIndex + s;
+        const path = document.createElementNS(SVG_NS, 'path');
+        const d = s < 4
+            ? `M${4 + s * 7 + wobble(i)} ${2 + wobble(i + 1)} L${4 + s * 7 - wobble(i + 2)} ${30 + wobble(i + 3)}`
+            : `M${-1 + wobble(i)} ${25 + wobble(i + 1)} L${30 + wobble(i + 2)} ${6 + wobble(i + 3)}`;
+        path.setAttribute('d', d);
+        if (i === newIndex) path.classList.add('is-new');
+        svg.appendChild(path);
+    }
+    return svg;
+}
+
+function renderTally(container, score, label) {
+    if (!container) return;
+    const previous = Number(container.dataset.count || 0);
+    const newIndex = score > previous ? score - 1 : -1;
+    container.replaceChildren();
+    for (let first = 0; first < score; first += 5) {
+        container.appendChild(tallyGroup(Math.min(5, score - first), first, newIndex));
+    }
+    container.dataset.count = String(score);
+    if (label) container.setAttribute('aria-label', `${label}: ${score}`);
+}
+
 export const ui = {
-    // Show/Hide elements
-    showElement(el) {
-        if (el) el.style.display = 'block';
+    // Show exactly one screen
+    showScreen(name) {
+        SCREENS.forEach(key => {
+            if (elements[key]) elements[key].hidden = key !== name;
+        });
     },
 
-    hideElement(el) {
-        if (el) el.style.display = 'none';
-    },
-
-    // Update status text
-    updateStatus(text) {
-        console.log('Status:', text);
-        if (elements.statusText) {
-            elements.statusText.textContent = text;
+    // Message shown on top of any screen
+    showToast(text, durationMs = 4000) {
+        clearTimeout(toastTimeout);
+        elements.toast.textContent = text;
+        elements.toast.hidden = false;
+        if (durationMs > 0) {
+            toastTimeout = setTimeout(() => this.hideToast(), durationMs);
         }
     },
 
-    // Show error message
+    hideToast() {
+        elements.toast.hidden = true;
+    },
+
     showError(text) {
         console.error('Error:', text);
-        this.updateStatus('❌ ' + text);
+        this.showToast(text);
     },
 
-    // Show feedback message
-    showFeedback(text, isCorrect) {
+    // Short hint under the answer line
+    showFeedback(text) {
         elements.feedbackArea.textContent = text;
-        elements.feedbackArea.className = 'feedback ' + (isCorrect ? 'correct' : 'incorrect');
-        this.showElement(elements.feedbackArea);
-
-        setTimeout(() => {
-            this.hideElement(elements.feedbackArea);
-        }, 2000);
+        clearTimeout(this.feedbackTimeout);
+        this.feedbackTimeout = setTimeout(() => { elements.feedbackArea.textContent = ''; }, 2000);
     },
 
-    // Update to lobby screen
     showLobby() {
-        this.showElement(elements.lobbyArea);
-        this.hideElement(elements.statusText);
-        this.hideElement(elements.waitingArea);
-        this.hideElement(elements.gameArea);
-        this.hideElement(elements.resultArea);
-
-        // Reset scores
-        if (elements.yourScoreSpan) elements.yourScoreSpan.textContent = '0';
-        if (elements.opponentScoreSpan) elements.opponentScoreSpan.textContent = '0';
-        if (elements.timer) elements.timer.textContent = '60';
+        this.showScreen('lobbyArea');
+        elements.playButton.disabled = false;
+        this.resetGameBoard();
     },
 
-    // Update to waiting screen
     showWaiting() {
-        this.hideElement(elements.lobbyArea);
-        this.showElement(elements.statusText);
-        this.showElement(elements.waitingArea);
-        this.updateStatus('Searching for opponent...');
+        this.showScreen('waitingArea');
+        elements.queueState.hidden = false;
+        elements.countdownState.hidden = true;
     },
 
-    // Update to countdown screen
-    showCountdown(tipText, progress) {
-        // Hide status text during countdown
-        this.hideElement(elements.statusText);
-
-        // Keep waiting area visible
-        this.showElement(elements.waitingArea);
-
-        // Show match found indicator on first countdown message
-        const matchFoundContainer = document.getElementById('match-found-container');
-        if (progress === 0 && matchFoundContainer) {
-            matchFoundContainer.style.display = 'block';
-        }
-
-        // Hide "Waiting for opponent..." text
-        const waitingText = document.getElementById('waiting-text');
-        if (waitingText) waitingText.style.display = 'none';
-
-        // LOCK PLAYERS IN: Disable "Leave Queue" button once countdown starts
-        const leaveButton = document.getElementById('leave-waiting-button');
-        if (leaveButton) {
-            leaveButton.disabled = true;
-            leaveButton.textContent = 'Match Locked';
-            leaveButton.style.opacity = '0.5';
-            leaveButton.style.cursor = 'not-allowed';
-        }
-
-        // Show progress bar
-        const progressContainer = document.getElementById('countdown-progress-container');
-        const progressFill = document.getElementById('countdown-progress-fill');
-
-        if (progressContainer) progressContainer.style.display = 'block';
-        if (progressFill) progressFill.style.width = `${progress}%`;
-
-        // Update tip text in progress container area (we'll add it)
-        const tipDisplay = document.getElementById('countdown-tip');
-        if (tipDisplay) tipDisplay.textContent = tipText || 'Game starting...';
+    showCountdown(seconds, tipText) {
+        this.showScreen('waitingArea');
+        elements.queueState.hidden = true;
+        elements.countdownState.hidden = false;
+        // Re-insert the number so its "written in chalk" animation plays for every step
+        const number = elements.countdownNumber;
+        number.textContent = String(seconds);
+        number.style.animation = 'none';
+        void number.offsetWidth;
+        number.style.animation = '';
+        if (tipText) elements.countdownTip.textContent = tipText;
     },
 
-    // Update to game screen
     showGame() {
-        this.hideElement(elements.waitingArea);
-        this.showElement(elements.gameArea);
-        this.hideElement(elements.resultArea);
+        this.showScreen('gameArea');
     },
 
-    // Update to result screen
     showResult() {
-        this.hideElement(elements.waitingArea);
-        this.hideElement(elements.gameArea);
-        this.showElement(elements.resultArea);
+        this.showScreen('resultArea');
     },
 
-    // Update question
+    resetGameBoard() {
+        renderTally(elements.yourTally, 0, 'Your score');
+        renderTally(elements.opponentTally, 0, 'Opponent score');
+        elements.timer.textContent = String(gameState.config.durationSeconds);
+        elements.timer.classList.remove('is-urgent');
+        this.resetForfeitButton();
+    },
+
     updateQuestion(questionText, questionNumber) {
-        elements.questionNumber.textContent = `Question ${questionNumber}/20`;
+        elements.questionNumber.textContent = `Question ${questionNumber} of ${gameState.config.questionsPerGame}`;
         elements.questionText.textContent = questionText;
-
-        // Reset Answer
         gameState.currentAnswer = '';
-        elements.answerDisplay.textContent = '—';
-
-        // Hide Feedback
-        this.hideElement(elements.feedbackArea);
+        gameState.awaitingResult = false;
+        this.updateAnswerDisplay('');
     },
 
-    // Update scores
     updateScores(yourScore, opponentScore) {
-        elements.yourScoreSpan.textContent = yourScore.toString();
-        elements.opponentScoreSpan.textContent = opponentScore.toString();
+        renderTally(elements.yourTally, yourScore, 'Your score');
+        renderTally(elements.opponentTally, opponentScore, 'Opponent score');
     },
 
-    // Trigger answer feedback animation
+    // Mark the submitted answer as right or wrong until the next question arrives
     showAnswerFeedback(wasCorrect) {
-        const answerDisplay = elements.answerDisplay;
-        answerDisplay.classList.remove('blink-red', 'blink-green');
-
-        if (wasCorrect) {
-            answerDisplay.classList.add('blink-green');
-        } else {
-            answerDisplay.classList.add('blink-red');
-        }
-
-        setTimeout(() => {
-            answerDisplay.classList.remove('blink-red', 'blink-green');
-        }, 600);
+        const answer = elements.answerDisplay;
+        answer.classList.remove('is-correct', 'is-wrong');
+        void answer.offsetWidth; // restart the animation for repeated wrong answers
+        answer.classList.add(wasCorrect ? 'is-correct' : 'is-wrong');
     },
 
-    // Update timer display
     updateTimer(seconds) {
-        elements.timer.textContent = seconds.toString();
-
-        // Add breathing effect when 5 seconds or less
-        if (seconds <= 5 && seconds > 0) {
-            elements.timer.classList.add('breathing');
-        } else {
-            elements.timer.classList.remove('breathing');
-        }
+        elements.timer.textContent = String(seconds);
+        elements.timer.classList.toggle('is-urgent', seconds > 0 && seconds <= URGENT_SECONDS);
     },
 
-    // Stop timer animation
     stopTimerAnimation() {
-        if (elements.timer) {
-            elements.timer.classList.remove('breathing');
-        }
+        elements.timer.classList.remove('is-urgent');
     },
 
-    // Update answer display
     updateAnswerDisplay(answer) {
-        elements.answerDisplay.textContent = answer || '—';
+        const display = elements.answerDisplay;
+        display.classList.remove('is-correct', 'is-wrong');
+        display.textContent = answer;
     },
 
-    // Update game over screen
+    // Light up the on-screen key that matches a physical key press
+    flashKey(key) {
+        const button = [...elements.keys].find(k => k.dataset.key === key);
+        if (!button) return;
+        button.classList.add('is-pressed');
+        setTimeout(() => button.classList.remove('is-pressed'), 120);
+    },
+
+    armForfeitButton() {
+        elements.forfeitButton.classList.add('is-armed');
+        elements.forfeitButton.textContent = 'Tap again to give up';
+    },
+
+    resetForfeitButton() {
+        elements.forfeitButton.classList.remove('is-armed');
+        elements.forfeitButton.textContent = 'Give up';
+    },
+
     updateGameOver(message) {
-        // Scores
-        elements.yourScore.textContent = message.yourScore.toString();
-        elements.opponentScore.textContent = message.opponentScore.toString();
-
-        // Result Message
-        let resultText = '';
+        const title = elements.resultMessage;
+        title.classList.remove('win');
         if (message.draw) {
-            resultText = 'Draw';
-            elements.resultMessage.className = 'result-message draw';
+            title.textContent = 'Draw';
         } else if (message.youWon) {
-            resultText = 'Victory!';
-            elements.resultMessage.className = 'result-message win';
+            title.textContent = 'You win';
+            title.classList.add('win');
         } else {
-            resultText = 'Defeat';
-            elements.resultMessage.className = 'result-message lose';
+            title.textContent = 'You lose';
         }
 
-        // Add disconnect message if present
-        if (message.disconnectMessage) {
-            resultText += '\n' + message.disconnectMessage;
-        }
+        elements.resultReason.hidden = !message.disconnectMessage;
+        elements.resultReason.textContent = message.disconnectMessage || '';
 
-        elements.resultMessage.textContent = resultText;
+        elements.yourFinalScore.textContent = String(message.yourScore);
+        elements.opponentFinalScore.textContent = String(message.opponentScore);
+        elements.yourFinalTally.dataset.count = '0';
+        elements.opponentFinalTally.dataset.count = '0';
+        renderTally(elements.yourFinalTally, message.yourScore);
+        renderTally(elements.opponentFinalTally, message.opponentScore);
 
-        // Rematch Button
         elements.rematchButton.disabled = false;
         elements.rematchButton.textContent = 'Rematch';
         elements.rematchStatus.textContent = '';
     },
 
-    // Update rematch status
     updateRematchStatus(opponentAccepted, statusMessage) {
-        if (opponentAccepted) {
-            elements.rematchStatus.textContent = 'Rematch starting!';
-        } else {
-            elements.rematchStatus.textContent = statusMessage || 'Waiting for opponent...';
-        }
+        elements.rematchStatus.textContent = opponentAccepted
+            ? 'Rematch starting'
+            : (statusMessage || 'Waiting for your opponent');
     },
 
-    // Update rematch button for waiting
     setRematchWaiting() {
         elements.rematchButton.disabled = true;
-        elements.rematchButton.textContent = 'Waiting for opponent...';
-        elements.rematchStatus.textContent = 'Waiting for opponent...';
+        elements.rematchButton.textContent = 'Rematch asked';
+        elements.rematchStatus.textContent = 'Waiting for your opponent to accept';
     },
 
-    // Disable rematch when opponent leaves
     disableRematch() {
         elements.rematchButton.disabled = true;
-        elements.rematchButton.textContent = 'Opponent Left';
-        elements.rematchButton.style.opacity = '0.5';
-        elements.rematchButton.style.cursor = 'not-allowed';
-        elements.rematchStatus.textContent = 'Opponent has left the game';
+        elements.rematchButton.textContent = 'Rematch';
+        elements.rematchStatus.textContent = 'Your opponent left. Find a new opponent to play again.';
     }
 };

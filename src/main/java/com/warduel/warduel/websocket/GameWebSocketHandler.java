@@ -301,7 +301,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             // Sende Score Update an beide Spieler
             sendScoreUpdate(player, opponent, correct);
             if(opponent != null) {
-                sendScoreUpdate(opponent, player, false);
+                sendScoreUpdate(opponent, player, null); // null: the opponent didn't answer
             }
 
             // Prüfe vorzeitigen Sieg (wenn aktiviert)
@@ -457,6 +457,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     log.info("Game {} ended because player {} disconnected", game.getGameId(), playerId);
                     if(opponentConnected) {
                         sendWinByDefault(opponent, null, name + " disconnected");
+                        // A rematch is impossible now; lets the client disable its button
+                        sendQuietly(opponent.getSession(), new ErrorMessage("Opponent left"));
                     }
                 }
             }

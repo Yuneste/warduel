@@ -5,6 +5,13 @@
 
 import { gameState } from './gameState.js';
 import { ui } from './uiController.js';
+import { animations } from './animations.js';
+
+// How long the ✓ / ✗ next to the answer stays before the next question replaces it
+const FEEDBACK_HOLD_MS = 350;
+const RETURN_TO_LOBBY_MS = 2500;
+
+let showingFeedbackUntil = 0;
 
 export function handleMessage(message) {
     switch (message.type) {
@@ -35,110 +42,89 @@ export function handleMessage(message) {
 }
 
 function handleGameState(message) {
-    console.log('Game state:', message.gameStatus);
     gameState.currentGameState = message.gameStatus;
-
-    if (message.gameStatus === 'WAITING') {
-        ui.updateStatus('Waiting for opponent...');
+    if (message.gameStatus === 'RUNNING') {
+        gameState.opponentGone = false;
+        ui.resetGameBoard();
+        gameState.setGameEndTime(Number(message.remainingSeconds));
     }
 }
 
 function handleCountdown(message) {
-    console.log('⏱️ COUNTDOWN received:', message.countdown);
-
-    // Calculate progress from 0% to 100% over 3 countdown steps
-    const totalSteps = 3;
-    const progress = ((totalSteps - message.countdown) / totalSteps) * 100;
-
-    // Use centralized UI method
-    ui.showCountdown(message.message, progress);
+    ui.showCountdown(message.countdown, message.message);
 }
 
 function handleQuestion(message) {
-    console.log('📝 QUESTION received:', message);
-
-    // Reset scores to 0-0 when first question arrives (new game/rematch)
-    if (message.questionNumber === 1) {
-        ui.updateScores(0, 0);
-    }
-
-    // Complete the progress bar to 100% before showing game
-    const progressFill = document.getElementById('countdown-progress-fill');
-    if (progressFill) {
-        progressFill.style.width = '100%';
-    }
-
-    // Small delay to show completion, then show game area
-    setTimeout(() => {
-        // Show game area
+    const show = () => {
         ui.showGame();
-
-        // Update question
         ui.updateQuestion(message.questionText, message.questionNumber);
-
-        // Start timer
-        const remainingSeconds = Number(message.remainingSeconds);
-        gameState.setGameEndTime(remainingSeconds);
+        gameState.setGameEndTime(Number(message.remainingSeconds));
         startTimer();
-    }, 200);
+    };
+
+    // Let the player see whether their last answer was right before the board changes
+    const wait = showingFeedbackUntil - Date.now();
+    if (wait > 0) {
+        setTimeout(show, wait);
+    } else {
+        show();
+    }
 }
 
 function handleScoreUpdate(message) {
-    console.log('🎯 SCORE_UPDATE received:', message);
-
-    // Update scores
     ui.updateScores(message.yourScore, message.opponentScore);
 
-    // Show answer feedback if we just submitted
-    if (message.wasCorrect !== undefined && message.wasCorrect !== null && gameState.currentAnswer !== '') {
+    // wasCorrect is null when the update is about the opponent's answer
+    if (message.wasCorrect !== null && message.wasCorrect !== undefined) {
         ui.showAnswerFeedback(message.wasCorrect);
+        animations.vibrate(message.wasCorrect ? 15 : [30, 40, 30]);
+        showingFeedbackUntil = Date.now() + FEEDBACK_HOLD_MS;
     }
 }
 
 function handleGameOver(message) {
-    console.log('🏁 GAME_OVER received:', message);
-    console.log('You won:', message.youWon);
-    console.log('Scores:', message.yourScore, 'vs', message.opponentScore);
-
     gameState.stopTimer();
     ui.stopTimerAnimation();
     gameState.currentGameState = 'FINISHED';
-
-    // Reset rematch flags
     gameState.rematchRequested = false;
-    gameState.opponentWantsRematch = false;
+    gameState.awaitingResult = false;
+    // "Player 2 disconnected" already tells the player the opponent is gone
+    gameState.opponentGone = / disconnected$/.test(message.disconnectMessage || '');
 
-    // Show result screen
-    ui.showResult();
-    ui.updateGameOver(message);
-
-    console.log('Result screen should now be visible');
+    // Keep the final answer's ✓ / ✗ visible for a moment, like between questions
+    const wait = Math.max(0, showingFeedbackUntil - Date.now());
+    setTimeout(() => {
+        ui.updateGameOver(message);
+        if (gameState.opponentGone) ui.disableRematch(); // "Opponent left" may arrive before this runs
+        ui.showResult();
+    }, wait);
 }
 
 function handleRematch(message) {
-    console.log('Rematch:', message);
     ui.updateRematchStatus(message.opponentAccepted, message.statusMessage);
 }
 
 function handleError(message) {
-    console.error('Server error:', message.errorMessage);
-    ui.showError(message.errorMessage);
+    const text = message.errorMessage || '';
+    console.error('Server error:', text);
+    gameState.awaitingResult = false;
 
-    // If opponent left after game finished (result screen), disable rematch
-    if (message.errorMessage === 'Opponent left' && gameState.currentGameState === 'FINISHED') {
+    if (text === 'Opponent left') {
+        // After a game, while a rematch was being set up, or right after a disconnect win
+        const alreadyExplained = gameState.opponentGone || gameState.currentGameState !== 'FINISHED';
+        gameState.opponentGone = true;
         ui.disableRematch();
+        if (!alreadyExplained) ui.showToast('Your opponent left the game.');
         return;
     }
 
-    // If opponent left queue or game early, return to lobby after showing error
-    // BUT: Don't reload if game is already finished (GAME_OVER already received)
-    if (message.errorMessage &&
-        (message.errorMessage.includes('left the queue') || message.errorMessage.includes('left the game')) &&
-        gameState.currentGameState !== 'FINISHED') {
-        setTimeout(() => {
-            location.reload();
-        }, 2000);
+    if (text === 'Opponent left the queue') {
+        ui.showToast('Your opponent left before the start. Back to the lobby…', RETURN_TO_LOBBY_MS);
+        setTimeout(() => location.reload(), RETURN_TO_LOBBY_MS);
+        return;
     }
+
+    ui.showError(text);
 }
 
 // Timer management

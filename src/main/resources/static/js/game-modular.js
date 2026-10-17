@@ -11,61 +11,26 @@ import { inputHandler } from './modules/inputHandler.js';
 import { animations } from './modules/animations.js';
 import { gameActions } from './modules/gameActions.js';
 
-// ==================== INITIALIZATION ====================
-
-window.addEventListener('DOMContentLoaded', () => {
-    console.log('MathWars starting...');
-    initializeGame();
-});
-
-function initializeGame() {
-    // Setup input handlers
-    inputHandler.setupNumberPad();
-
-    // Setup button event listeners
-    setupButtons();
-
-    // Start animations
-    animations.startPointingHand();
-
-    // Setup visibility detection (for mobile lock/unlock)
-    websocket.setupVisibilityDetection();
-
-    console.log('Game initialized successfully');
-}
-
-// ==================== BUTTON SETUP ====================
+// Modules load deferred, so the DOM is ready here
+inputHandler.setup();
+setupButtons();
+websocket.setupVisibilityDetection();
+ui.showLobby();
 
 function setupButtons() {
-    // Play button
-    if (elements.playButton) {
-        animations.addHapticFeedback(elements.playButton);
-        elements.playButton.addEventListener('click', () => {
-            console.log('Play button clicked');
-            gameActions.startGame();
-        });
-    }
+    const buttons = [
+        [elements.playButton, () => gameActions.startGame()],
+        [elements.leaveWaitingButton, () => gameActions.leaveQueue()],
+        [elements.forfeitButton, () => gameActions.forfeit()],
+        [elements.rematchButton, () => gameActions.requestRematch()],
+        [elements.newGameButton, () => gameActions.findNewOpponent()]
+    ];
 
-    // Leave waiting button
-    if (elements.leaveWaitingButton) {
-        animations.addHapticFeedback(elements.leaveWaitingButton);
-        elements.leaveWaitingButton.addEventListener('click', () => {
-            console.log('Leave waiting button clicked');
-            gameActions.leaveGame();
-        });
-    }
-
-    // Forfeit button
-    if (elements.forfeitButton) {
-        animations.addHapticFeedback(elements.forfeitButton);
-        elements.forfeitButton.addEventListener('click', () => {
-            console.log('Forfeit button clicked');
-            gameActions.leaveGame();
-        });
+    for (const [button, action] of buttons) {
+        animations.addHapticFeedback(button);
+        button.addEventListener('click', action);
     }
 }
-
-// ==================== CLEANUP ====================
 
 window.addEventListener('beforeunload', () => {
     gameState.stopTimer();

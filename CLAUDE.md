@@ -48,25 +48,32 @@ When you change game behavior, add or adjust a scenario there. When changing por
 - **`dto/`** holds the WebSocket protocol. `BaseMessage` uses Jackson polymorphism on the `type` field (`@JsonSubTypes`). To add a message type: create the DTO, register it in `BaseMessage`, add a `case` in `GameWebSocketHandler.handleTextMessage` (client→server), and/or add a handler in `messageHandlers.js` (server→client). The server sends `GAME_STATE` (RUNNING) when a round starts, which the client needs for Forfeit. `JoinGameMessage` isn't used yet; it's kept for nicknames.
 - **`config/GameConfiguration`** binds the `game.*` properties.
 - **`SecurityConfig`** permits all requests on purpose (anonymous play). The default user auto-configuration is excluded in `WarDuelApplication`. JPA + H2 (local) / Postgres (production) are kept for the planned leaderboard.
-- **`HomeController`** serves the Thymeleaf templates `index` (the SPA), `impressum` and `datenschutz`.
+- **`HomeController`** serves the Thymeleaf templates `index` (the SPA), `impressum` and `datenschutz`. It passes `questionsPerGame`, `durationSeconds` and `winScore` to the page, which shows them and exposes them as `<body data-*>` for the JS. Never hardcode those numbers in the frontend.
 
 ### Frontend (`src/main/resources/`)
 
-- `templates/index.html` is the single page with every screen (lobby, waiting/countdown, game, result). It loads `static/js/game-modular.js` as an ES module.
-- Data flow in `static/js/modules/`: `websocket.js` (connection, heartbeat, reload on loss) → `messageHandlers.js` (routes by `type`) → `gameState.js` (state + client timer) and `uiController.js` (DOM only, no logic). `gameActions.js` holds the high-level actions (play, leave, rematch), `inputHandler.js` the on-screen number pad, and `domElements.js` the cached element lookups.
-- `static/css/style.css` is the only stylesheet.
+- `templates/index.html` is the single page. Its four `.screen` sections (lobby, waiting/countdown, game, result) are switched with the `hidden` attribute through `ui.showScreen()`, so only one is visible at a time. `#toast` shows messages on top of any screen. It loads `static/js/game-modular.js` as an ES module.
+- Data flow in `static/js/modules/`:
+  - `websocket.js`: connection, heartbeat, reload on loss. Events from a replaced socket are ignored.
+  - `messageHandlers.js`: routes by `type`. It holds the ✓/✗ answer mark for `FEEDBACK_HOLD_MS` before the next question replaces it. In a `SCORE_UPDATE`, `wasCorrect` is `null` when the update is about the opponent's answer.
+  - `gameState.js` (state, settings, client timer) and `uiController.js` (DOM only, no logic; also draws the tally-mark scores as SVG).
+  - `gameActions.js`: play, cancel, give up (needs a second tap), rematch, find a new opponent. `inputHandler.js`: number pad plus keyboard (digits, Backspace, `-`, Enter, Escape). `domElements.js`: cached element lookups.
+- **Design: "Chalkboard duel".** All tokens are CSS variables at the top of `static/css/style.css`, the only stylesheet:
+  - colors: board `#263d33`, chalk `#eef0e8`, you = yellow `#f2d45c`, opponent = pink `#f3a1b5`, correct = green `#a8e6a1`, wood tray
+  - fonts: Cabin Sketch for big chalk text (titles, question, numbers on keys) and Lexend for everything else, including filled buttons, where the hatched chalk face loses contrast
+  - fonts are **self-hosted** in `static/fonts/` with their OFL licenses. Don't load anything from Google or other CDNs: that's a GDPR problem in Germany, and the privacy policy doesn't cover it.
+  - phone-first: the board fills the screen and the wooden `.tray` holds the legal links. From 820px up, the board is framed on a wall and the game switches to two columns.
 
 ## Roadmap
 
-Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs) and 3 (tests, CI, JDK 25 support) are done.
+Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs), 3 (tests, CI, JDK 25 support) and 4 (chalkboard redesign) are done.
 
-4. **Complete visual redesign:** the current pastel design is to be replaced, not polished. Use the `frontend-design` and `ui-ux-pro-max` skills, offer 2–3 directions to choose from, then rebuild every screen phone-first. Include keyboard input, values read from the server, visible rematch and error states (for example "Opponent left the queue" is currently invisible on the waiting screen), and accessibility.
 5. **Features and game feel:**
    - nicknames, a private match link, post-game stats
    - challenge types: Classic, True/False Blitz, Missing Number, Compare
    - a leaderboard ranked by total wins; identity is a nickname plus a secret device token, and only public matchmaking games count
-   - a versus intro, tug-of-war bar, combos and confetti
-   - Web Audio sound effects with a mute button
+   - game feel in the chalkboard style: a match intro, streaks and combos, chalk-dust effects on correct answers, a celebration on wins
+   - Web Audio sound effects (chalk scratches, taps, countdown, win/lose) with a mute button
 6. **Hosting:** a free Render web service (`Dockerfile` + `render.yaml`) with Postgres on Neon. No custom domain is needed.
 
 ## Conventions

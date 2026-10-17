@@ -3,41 +3,46 @@
  * Centralized access to all DOM elements
  */
 
+const byId = id => document.getElementById(id);
+
 export const elements = {
-    // Status
-    statusText: document.getElementById('status-text'),
+    toast: byId('toast'),
 
-    // Areas
-    lobbyArea: document.getElementById('lobby-area'),
-    waitingArea: document.getElementById('waiting-area'),
-    gameArea: document.getElementById('game-area'),
-    resultArea: document.getElementById('result-area'),
+    // Screens
+    lobbyArea: byId('lobby-area'),
+    waitingArea: byId('waiting-area'),
+    gameArea: byId('game-area'),
+    resultArea: byId('result-area'),
 
-    // Game elements
-    questionText: document.getElementById('question-text'),
-    questionNumber: document.getElementById('question-number'),
-    timer: document.getElementById('timer'),
-    yourScoreSpan: document.getElementById('your-score'),
-    opponentScoreSpan: document.getElementById('opponent-score'),
+    // Queue and countdown
+    queueState: byId('queue-state'),
+    countdownState: byId('countdown-state'),
+    countdownNumber: byId('countdown-number'),
+    countdownTip: byId('countdown-tip'),
 
-    // Answer
-    answerDisplay: document.getElementById('answer-display'),
-
-    // Feedback
-    feedbackArea: document.getElementById('feedback-area'),
+    // Game
+    questionText: byId('question-text'),
+    questionNumber: byId('question-number'),
+    timer: byId('timer'),
+    yourTally: byId('your-tally'),
+    opponentTally: byId('opponent-tally'),
+    answerDisplay: byId('answer-display'),
+    feedbackArea: byId('feedback-area'),
+    keys: document.querySelectorAll('.key'),
 
     // Result
-    resultMessage: document.getElementById('result-message'),
-    yourScore: document.getElementById('your-final-score'),
-    opponentScore: document.getElementById('opponent-final-score'),
-    rematchButton: document.getElementById('rematch-button'),
-    rematchStatus: document.getElementById('rematch-status'),
+    resultMessage: byId('result-message'),
+    resultReason: byId('result-reason'),
+    yourFinalScore: byId('your-final-score'),
+    opponentFinalScore: byId('opponent-final-score'),
+    yourFinalTally: byId('your-final-tally'),
+    opponentFinalTally: byId('opponent-final-tally'),
+    rematchButton: byId('rematch-button'),
+    rematchStatus: byId('rematch-status'),
 
     // Buttons
-    playButton: document.getElementById('play-button'),
-    leaveWaitingButton: document.getElementById('leave-waiting-button'),
-    forfeitButton: document.getElementById('forfeit-button'),
-
-    // Animations
-    pointingHand: document.querySelector('.pointing-hand')
+    playButton: byId('play-button'),
+    leaveWaitingButton: byId('leave-waiting-button'),
+    forfeitButton: byId('forfeit-button'),
+    newGameButton: byId('new-game-button')
 };

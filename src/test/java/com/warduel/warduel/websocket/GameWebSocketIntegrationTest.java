@@ -182,6 +182,7 @@ class GameWebSocketIntegrationTest {
         JsonNode over = a.next("GAME_OVER");
         assertThat(over.get("youWon").asBoolean()).isTrue();
         assertThat(over.get("disconnectMessage").asText()).isEqualTo("Player 2 disconnected");
+        assertThat(a.next("ERROR").get("errorMessage").asText()).as("rematch no longer possible").isEqualTo("Opponent left");
     }
 
     @Test

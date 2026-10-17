@@ -1,65 +1,63 @@
 /**
  * Game Actions
- * High-level game actions (join, leave, rematch)
+ * High-level game actions (join, leave, give up, rematch)
  */
 
 import { gameState } from './gameState.js';
 import { ui } from './uiController.js';
 import { websocket } from './websocket.js';
 
+const FORFEIT_CONFIRM_MS = 3000;
+let forfeitTimeout = null;
+
 export const gameActions = {
-    // Start game (connect and join matchmaking)
+    // Connect and join matchmaking
     startGame() {
-        console.log('Starting game...');
+        ui.hideToast();
         websocket.connect();
     },
 
-    // Leave game/queue
-    leaveGame() {
-        console.log('Leaving game...');
-
-        if (gameState.currentGameState === 'RUNNING') {
-            // Send forfeit to server - server will send GAME_OVER to both players
-            websocket.send({
-                type: 'FORFEIT'
-            });
-        } else {
-            // In queue/waiting - just leave immediately
-            gameState.stopTimer();
-            ui.stopTimerAnimation();
-            websocket.close();
-            gameState.reset();
-            ui.showLobby();
-        }
+    // Leave the queue before a match is found
+    leaveQueue() {
+        gameState.stopTimer();
+        websocket.close();
+        gameState.reset();
+        ui.showLobby();
     },
 
-    // Request rematch
-    requestRematch() {
-        // Force check connection before allowing rematch
-        if (!websocket.forceConnectionCheck()) {
-            return; // forceConnectionCheck already shows error and reloads
-        }
+    // Giving up needs a second tap within a few seconds, so a stray tap on a phone can't end the game
+    forfeit() {
+        if (gameState.currentGameState !== 'RUNNING') return;
 
-        if (gameState.rematchRequested) {
-            console.log('Rematch already requested');
+        if (!forfeitTimeout) {
+            ui.armForfeitButton();
+            forfeitTimeout = setTimeout(() => this.disarmForfeit(), FORFEIT_CONFIRM_MS);
             return;
         }
 
-        console.log('Requesting rematch...');
+        this.disarmForfeit();
+        websocket.send({ type: 'FORFEIT' });
+    },
+
+    disarmForfeit() {
+        clearTimeout(forfeitTimeout);
+        forfeitTimeout = null;
+        ui.resetForfeitButton();
+    },
+
+    requestRematch() {
+        if (!websocket.forceConnectionCheck() || gameState.rematchRequested) return;
+
         gameState.rematchRequested = true;
-
-        // Update UI
         ui.setRematchWaiting();
+        websocket.send({ type: 'REMATCH', requestRematch: true });
+    },
 
-        // Send request
-        websocket.send({
-            type: 'REMATCH',
-            requestRematch: true,
-            opponentAccepted: false,
-            statusMessage: ''
-        });
+    // Leave the finished game and go straight back into matchmaking
+    findNewOpponent() {
+        websocket.close();
+        gameState.reset();
+        ui.resetGameBoard();
+        websocket.connect();
     }
 };
-
-// Make requestRematch available globally for onclick handler
-window.requestRematch = gameActions.requestRematch.bind(gameActions);
