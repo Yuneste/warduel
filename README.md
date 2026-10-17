@@ -4,11 +4,11 @@
 
 Real-time multiplayer math duel: two players race to solve 20 problems in 60 seconds, on a chalkboard.
 
-![Gameplay on a phone: the score is drawn as tally marks, a wrong answer gets crossed out, and giving up needs a second tap](docs/screenshots/gameplay.png)
+![Three challenge types on a phone: Classic with a "5 in a row" streak and chalk dust, True or false, and Which is bigger with powers](docs/screenshots/gameplay.png)
 
 | Desktop | Every ending |
 |---|---|
-| ![Desktop: framed chalkboard with the question on the left and the number pad on the right](docs/screenshots/desktop.png) | ![Win, lose and draw screens with final tally marks](docs/screenshots/results.png) |
+| ![Desktop: framed chalkboard with the question on the left and the number pad on the right](docs/screenshots/desktop.png) | ![Win, lose and draw screens with nicknames, tally marks and answer stats](docs/screenshots/results.png) |
 
 ## Features
 
