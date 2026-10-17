@@ -100,9 +100,6 @@ public class GameService {
         game.getPlayer1().setQuestions(questionsP1);
         game.getPlayer2().setQuestions(questionsP2);
 
-        // Game-Liste = Player 1 Fragen (für Kompatibilität)
-        game.setQuestions(questionsP1);
-
         game.startGame();
 
         log.info("Game {} started - Duration: {}s, P1: {} questions, P2: {} questions",
@@ -154,7 +151,7 @@ public class GameService {
         GameSession game = playerToGame.get(playerId);
 
         if(game != null) {
-            boolean removed = game.removePlayer(playerId);  // ← BENUTZE den Return-Wert
+            boolean removed = game.removePlayer(playerId);
             playerToGame.remove(playerId);
 
             // CRITICAL: Clear waitingGame if it's this game (prevents ghost matchmaking)

@@ -5,8 +5,6 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -41,9 +39,6 @@ public class GameSession {
     // Spiel-Status (volatile für Thread-Sicherheit)
     private volatile GameStatus status;
 
-    // Fragen
-    private final List<Question> questions;
-
     // Zeit-Tracking (volatile für Thread-Sicherheit)
     private volatile LocalDateTime startTime;
     private volatile LocalDateTime endTime;
@@ -58,7 +53,6 @@ public class GameSession {
     public GameSession() {
         this.gameId = UUID.randomUUID().toString();
         this.status = GameStatus.WAITING;
-        this.questions = new ArrayList<>();
         this.player1WantsRematch = false;
         this.player2WantsRematch = false;
     }
@@ -164,7 +158,7 @@ public class GameSession {
      */
     public Question getCurrentQuestionForPlayer(Player player) {
         if(player == null) return null;
-        return player.getCurrentQuestion();  // ← Nutze Player's eigene Liste!
+        return player.getCurrentQuestion();
     }
 
     /**
@@ -195,14 +189,6 @@ public class GameSession {
             return false;
         }
         return player1.getScore() == player2.getScore();
-    }
-
-    /**
-     * Setzt Fragen für das Spiel
-     */
-    public synchronized void setQuestions(List<Question> questions) {
-        this.questions.clear();
-        this.questions.addAll(questions);
     }
 
     // Rematch-bezogene Methoden
@@ -281,11 +267,6 @@ public class GameSession {
         this.player1WantsRematch = false;
         this.player2WantsRematch = false;
 
-        // Fragen werden vom Service neu generiert
-        this.questions.clear();
-
         return true;
     }
-
-    // ALLE GETTER AM ENDE WURDEN ENTFERNT - Lombok macht das automatisch!
 }

@@ -192,7 +192,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        log.info("Received message from {}: {}", playerId, payload);
+        log.debug("Received message from {}: {}", playerId, payload);
 
         try {
             BaseMessage baseMsg = objectMapper.readValue(payload, BaseMessage.class);
@@ -541,7 +541,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         Player player2 = game.getPlayer2();
 
         if(showCountdown) {
-            log.info("Game {} starting countdown with {} questions", game.getGameId(), game.getQuestions().size());
+            log.info("Game {} starting countdown", game.getGameId());
 
             // Tips to show during countdown
             String[] tips = {

@@ -22,7 +22,7 @@ public class GameStateMessage extends BaseMessage {
 
     public GameStateMessage() {
         super();
-        setType("GAME_STATE");  // ← NEU
+        setType("GAME_STATE");
     }
 
     public GameStateMessage(

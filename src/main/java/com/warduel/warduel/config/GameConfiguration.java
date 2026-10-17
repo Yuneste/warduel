@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Configuration;
 /**
  * GameConfiguration - Zentrale Konfiguration für Spielparameter
  * Ermöglicht einfache Anpassung über application.properties
- * Bereitet vor für zukünftige Game Modes
  */
 @Configuration
 @ConfigurationProperties(prefix = "game")
