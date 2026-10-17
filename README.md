@@ -2,9 +2,13 @@
 
 [![CI](https://github.com/Yuneste/warduel/actions/workflows/ci.yml/badge.svg)](https://github.com/Yuneste/warduel/actions/workflows/ci.yml)
 
-Real-time multiplayer math quiz game where two players compete to solve 20 questions in 60 seconds.
+Real-time multiplayer math duel: two players race to solve 20 problems in 60 seconds, on a chalkboard.
 
-🎮 **[Play Live](https://warduel-production.up.railway.app/)**
+![Gameplay on a phone: the score is drawn as tally marks, a wrong answer gets crossed out, and giving up needs a second tap](docs/screenshots/gameplay.png)
+
+| Desktop | Every ending |
+|---|---|
+| ![Desktop: framed chalkboard with the question on the left and the number pad on the right](docs/screenshots/desktop.png) | ![Win, lose and draw screens with final tally marks](docs/screenshots/results.png) |
 
 ## Features
 

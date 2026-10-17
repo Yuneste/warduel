@@ -44,5 +44,6 @@ export const elements = {
     playButton: byId('play-button'),
     leaveWaitingButton: byId('leave-waiting-button'),
     forfeitButton: byId('forfeit-button'),
-    newGameButton: byId('new-game-button')
+    newGameButton: byId('new-game-button'),
+    menuButton: byId('menu-button')
 };

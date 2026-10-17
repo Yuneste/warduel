@@ -22,7 +22,13 @@ export const inputHandler = {
             if (elements.gameArea.hidden || event.ctrlKey || event.metaKey || event.altKey) return;
             const key = this.normalizeKey(event.key);
             if (!key) return;
+            // Enter on a focused button (e.g. tabbed to "7") activates that button as usual
+            if (key === 'Enter' && event.target.closest('button')) return;
             event.preventDefault();
+            // Typing on the keyboard shouldn't leave a focus ring on the last clicked pad key
+            if (document.activeElement && document.activeElement.classList.contains('key')) {
+                document.activeElement.blur();
+            }
             ui.flashKey(key === 'Escape' ? 'Backspace' : key);
             this.handleKey(key);
         });

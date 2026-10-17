@@ -23,7 +23,8 @@ function setupButtons() {
         [elements.leaveWaitingButton, () => gameActions.leaveQueue()],
         [elements.forfeitButton, () => gameActions.forfeit()],
         [elements.rematchButton, () => gameActions.requestRematch()],
-        [elements.newGameButton, () => gameActions.findNewOpponent()]
+        [elements.newGameButton, () => gameActions.findNewOpponent()],
+        [elements.menuButton, () => gameActions.backToMenu()]
     ];
 
     for (const [button, action] of buttons) {

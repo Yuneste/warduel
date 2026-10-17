@@ -52,12 +52,13 @@ When you change game behavior, add or adjust a scenario there. When changing por
 
 ### Frontend (`src/main/resources/`)
 
+- README screenshots live in `docs/screenshots/`. Retake them when the UI changes visibly.
 - `templates/index.html` is the single page. Its four `.screen` sections (lobby, waiting/countdown, game, result) are switched with the `hidden` attribute through `ui.showScreen()`, so only one is visible at a time. `#toast` shows messages on top of any screen. It loads `static/js/game-modular.js` as an ES module.
 - Data flow in `static/js/modules/`:
   - `websocket.js`: connection, heartbeat, reload on loss. Events from a replaced socket are ignored.
   - `messageHandlers.js`: routes by `type`. It holds the ✓/✗ answer mark for `FEEDBACK_HOLD_MS` before the next question replaces it. In a `SCORE_UPDATE`, `wasCorrect` is `null` when the update is about the opponent's answer.
   - `gameState.js` (state, settings, client timer) and `uiController.js` (DOM only, no logic; also draws the tally-mark scores as SVG).
-  - `gameActions.js`: play, cancel, give up (needs a second tap), rematch, find a new opponent. `inputHandler.js`: number pad plus keyboard (digits, Backspace, `-`, Enter, Escape). `domElements.js`: cached element lookups.
+  - `gameActions.js`: play, cancel, give up (needs a second tap), rematch, find a new opponent, back to the main menu. `inputHandler.js`: number pad plus keyboard (digits, Backspace, `-`, Enter, Escape). `domElements.js`: cached element lookups.
 - **Design: "Chalkboard duel".** All tokens are CSS variables at the top of `static/css/style.css`, the only stylesheet:
   - colors: board `#263d33`, chalk `#eef0e8`, you = yellow `#f2d45c`, opponent = pink `#f3a1b5`, correct = green `#a8e6a1`, wood tray
   - fonts: Cabin Sketch for big chalk text (titles, question, numbers on keys) and Lexend for everything else, including filled buttons, where the hatched chalk face loses contrast

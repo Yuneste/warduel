@@ -53,6 +53,14 @@ export const gameActions = {
         websocket.send({ type: 'REMATCH', requestRematch: true });
     },
 
+    // Leave the finished game and return to the start screen (the opponent is told we left)
+    backToMenu() {
+        websocket.close();
+        gameState.reset();
+        ui.hideToast();
+        ui.showLobby();
+    },
+
     // Leave the finished game and go straight back into matchmaking
     findNewOpponent() {
         websocket.close();
