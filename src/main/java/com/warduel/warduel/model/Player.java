@@ -3,9 +3,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.springframework.web.socket.WebSocketSession;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -20,7 +20,7 @@ public class Player {
     private final AtomicInteger score = new AtomicInteger(0);
     private final AtomicInteger currentQuestionIndex = new AtomicInteger(0);
     private List<Question> questions = new ArrayList<>();
-    private final Set<Integer> answeredQuestions = new HashSet<>();
+    private final Set<Integer> answeredQuestions = ConcurrentHashMap.newKeySet();
 
     public Player(String playerId, WebSocketSession session, String displayName) {
         this.playerId = playerId;

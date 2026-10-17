@@ -5,7 +5,10 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledFuture;
 
 /**
  * GameSession - Repräsentiert eine Spielsitzung zwischen zwei Spielern
@@ -13,7 +16,7 @@ import java.util.UUID;
  */
 @Getter
 @Setter
-@ToString(exclude = {"player1", "player2"})
+@ToString(exclude = {"player1", "player2", "scheduledTasks", "rematchLock"})
 public class GameSession {
 
     /**
@@ -39,6 +42,9 @@ public class GameSession {
     // Spiel-Status (volatile für Thread-Sicherheit)
     private volatile GameStatus status;
 
+    // Number of rounds started so far (1 = first match, 2+ = rematches)
+    private volatile int round;
+
     // Zeit-Tracking (volatile für Thread-Sicherheit)
     private volatile LocalDateTime startTime;
     private volatile LocalDateTime endTime;
@@ -46,6 +52,12 @@ public class GameSession {
     // Rematch Flags (volatile für Thread-Sicherheit)
     private volatile boolean player1WantsRematch;
     private volatile boolean player2WantsRematch;
+
+    // Countdown, game timer and connection monitor of the current round; cancelled when the round ends
+    private final List<ScheduledFuture<?>> scheduledTasks = new CopyOnWriteArrayList<>();
+
+    // Serializes rematch requests so "waiting" and "starting" messages go out in a consistent order
+    private final Object rematchLock = new Object();
 
     /**
      * Konstruktor
@@ -63,11 +75,11 @@ public class GameSession {
     public synchronized boolean addPlayer(Player player) {
         if(player1 == null) {
             player1 = player;
-            player.setDisplayName("Spieler 1");
+            player.setDisplayName("Player 1");
             return true;
         } else if(player2 == null) {
             player2 = player;
-            player.setDisplayName("Spieler 2");
+            player.setDisplayName("Player 2");
             this.status = GameStatus.READY;
             return true;
         }
@@ -103,6 +115,7 @@ public class GameSession {
             return false;
         }
         this.status = GameStatus.RUNNING;
+        this.round++;
         this.startTime = LocalDateTime.now();
         this.endTime = this.startTime.plusSeconds(durationSeconds);
 
@@ -121,10 +134,31 @@ public class GameSession {
 
     /**
      * Thread-safe: Beendet das Spiel
+     * @return true only for the call that actually finished the game (later calls are no-ops)
      */
-    public synchronized void endGame() {
+    public synchronized boolean endGame() {
+        if(this.status == GameStatus.FINISHED) {
+            return false;
+        }
         this.status = GameStatus.FINISHED;
         this.endTime = LocalDateTime.now();
+        cancelScheduledTasks();
+        return true;
+    }
+
+    /**
+     * Registers a task belonging to the current round so it can be cancelled when the round ends
+     */
+    public void addScheduledTask(ScheduledFuture<?> task) {
+        scheduledTasks.add(task);
+    }
+
+    /**
+     * Cancels all pending tasks of the current round (countdown, game timer, connection monitor)
+     */
+    public void cancelScheduledTasks() {
+        scheduledTasks.forEach(task -> task.cancel(false));
+        scheduledTasks.clear();
     }
 
     /**
@@ -166,7 +200,7 @@ public class GameSession {
      */
     public String determineWinner() {
         if(player1 == null || player2 == null) {
-            return "Unbekannt";
+            return "Unknown";
         }
 
         int score1 = player1.getScore();
@@ -177,7 +211,7 @@ public class GameSession {
         } else if(score2 > score1) {
             return player2.getDisplayName();
         } else {
-            return "Unentschieden";
+            return "Draw";
         }
     }
 

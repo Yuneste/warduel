@@ -39,8 +39,9 @@ Use **JDK 17–21**. On JDK 23+, the Lombok version pinned by Spring Boot 3.2 fa
   - a shared `ScheduledExecutorService` for all delayed work; never block with `Thread.sleep`
   - rate limiting and heartbeat-based timeout detection
 - **`service/GameService`** handles matchmaking and per-game state changes. Matchmaking happens **on WebSocket connect** (`afterConnectionEstablished` → `joinGame`) through a single `waitingGame` slot, so the client never sends `JOIN_GAME`. Player identity is the WebSocket session ID. `joinGame`, `removePlayer` and `requestRematch` are `synchronized`. Watch for race conditions around game start and rematch.
-- **`model/GameSession`** is a state machine `WAITING → READY → RUNNING → FINISHED` (rematch resets `FINISHED → READY`). Questions live on each `Player`, not on the session.
-- **`dto/`** holds the WebSocket protocol. `BaseMessage` uses Jackson polymorphism on the `type` field (`@JsonSubTypes`). To add a message type: create the DTO, register it in `BaseMessage`, add a `case` in `GameWebSocketHandler.handleTextMessage` (client→server), and/or add a handler in `messageHandlers.js` (server→client). `GameStateMessage` and `JoinGameMessage` aren't sent yet; they're kept for the planned game-state sync and nicknames.
+- **`model/GameSession`** is a state machine `WAITING → READY → RUNNING → FINISHED` (rematch resets `FINISHED → READY`). The clock starts only on `READY → RUNNING`, which happens after the countdown in `actuallyStartGame`. `endGame()` returns true only for the call that actually ends the game, and it cancels every task registered with `addScheduledTask` (countdown, game timer, connection monitor). Route every way a game can end through it so stale timers can't end a later round. Questions live on each `Player`, not on the session.
+- **Concurrency:** every session is wrapped in a `ConcurrentWebSocketSessionDecorator` (looked up by ID in `sendMessage`), answers are processed under `synchronized(player)`, and rematch requests go through `game.getRematchLock()`.
+- **`dto/`** holds the WebSocket protocol. `BaseMessage` uses Jackson polymorphism on the `type` field (`@JsonSubTypes`). To add a message type: create the DTO, register it in `BaseMessage`, add a `case` in `GameWebSocketHandler.handleTextMessage` (client→server), and/or add a handler in `messageHandlers.js` (server→client). The server sends `GAME_STATE` (RUNNING) when a round starts, which the client needs for Forfeit. `JoinGameMessage` isn't used yet; it's kept for nicknames.
 - **`config/GameConfiguration`** binds the `game.*` properties.
 - **`SecurityConfig`** permits all requests on purpose (anonymous play). The default user auto-configuration is excluded in `WarDuelApplication`. JPA + H2 (local) / Postgres (production) are kept for the planned leaderboard.
 - **`HomeController`** serves the Thymeleaf templates `index` (the SPA), `impressum` and `datenschutz`.
@@ -53,18 +54,10 @@ Use **JDK 17–21**. On JDK 23+, the Lombok version pinned by Spring Boot 3.2 fa
 
 ## Roadmap
 
-Work happens on branch `refresh`, one commit per phase. Phase 1 (cleanup) is done.
+Work happens on branch `refresh`, one commit per phase. Phase 1 (cleanup) and Phase 2 (backend bugs) are done.
 
-2. **Backend bugs:**
-   - start the game clock only after the countdown, and cancel the match if someone leaves during it
-   - cancel each game's timer and connection monitor when it ends (stale timers currently end rematches early)
-   - thread-safe sends (`ConcurrentWebSocketSessionDecorator`)
-   - atomic per-player answer handling
-   - a working Forfeit (the server sends `GAME_STATE`)
-   - English display names
-   - correct ordering of rematch messages
 3. **Tests and CI:** rewrite and track `src/test`, add WebSocket integration tests that play real matches, add GitHub Actions with a badge, upgrade dependencies so JDK 25 works.
-4. **Complete visual redesign:** the current pastel design is to be replaced, not polished. Use the `frontend-design` and `ui-ux-pro-max` skills, offer 2–3 directions to choose from, then rebuild every screen phone-first. Include keyboard input, values read from the server, visible rematch and error states, and accessibility.
+4. **Complete visual redesign:** the current pastel design is to be replaced, not polished. Use the `frontend-design` and `ui-ux-pro-max` skills, offer 2–3 directions to choose from, then rebuild every screen phone-first. Include keyboard input, values read from the server, visible rematch and error states (for example "Opponent left the queue" is currently invisible on the waiting screen), and accessibility.
 5. **Features and game feel:**
    - nicknames, a private match link, post-game stats
    - challenge types: Classic, True/False Blitz, Missing Number, Compare

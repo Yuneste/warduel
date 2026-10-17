@@ -86,7 +86,7 @@ public class GameService {
     }
 
     /**
-     * Bereitet Spiel vor und startet es
+     * Prepares a game (duration + questions); it is started only after the countdown
      */
     private void prepareGame(GameSession game) {
         // Setze Spiel-Konfiguration
@@ -100,9 +100,8 @@ public class GameService {
         game.getPlayer1().setQuestions(questionsP1);
         game.getPlayer2().setQuestions(questionsP2);
 
-        game.startGame();
-
-        log.info("Game {} started - Duration: {}s, P1: {} questions, P2: {} questions",
+        // The clock starts later in GameWebSocketHandler, once the countdown has finished
+        log.info("Game {} prepared - Duration: {}s, P1: {} questions, P2: {} questions",
                 game.getGameId(), gameConfig.getDurationSeconds(), questionsP1.size(), questionsP2.size());
     }
 
