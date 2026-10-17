@@ -33,6 +33,8 @@ function tallyGroup(strokes, firstIndex, newIndex) {
     return svg;
 }
 
+const seconds = ms => `${(ms / 1000).toFixed(1)} s`;
+
 function renderTally(container, score, label) {
     if (!container) return;
     const previous = Number(container.dataset.count || 0);
@@ -81,14 +83,52 @@ export const ui = {
 
     showLobby() {
         this.showScreen('lobbyArea');
-        elements.playButton.disabled = false;
+        const invited = Boolean(gameState.inviteCode);
+        elements.inviteBanner.hidden = !invited;
+        elements.joinInviteButton.hidden = !invited;
+        elements.playButton.hidden = invited;
+        elements.friendButton.textContent = invited ? 'Find a random opponent instead' : 'Play a friend instead';
+        this.setLobbyBusy(false);
+        this.setNames('You', 'Opponent');
         this.resetGameBoard();
     },
 
-    showWaiting() {
+    // While connecting, the lobby buttons must not start a second connection
+    setLobbyBusy(busy) {
+        [elements.playButton, elements.joinInviteButton, elements.friendButton].forEach(b => { b.disabled = busy; });
+    },
+
+    // mode: 'queue' (public matchmaking) or 'room' (waiting for an invited friend)
+    showWaiting(mode = 'queue') {
         this.showScreen('waitingArea');
-        elements.queueState.hidden = false;
+        elements.queueState.hidden = mode !== 'queue';
+        elements.roomState.hidden = mode !== 'room';
         elements.countdownState.hidden = true;
+        if (mode === 'room') {
+            elements.roomLink.value = 'Creating your link…';
+            elements.roomCode.textContent = '';
+            elements.copyLinkButton.disabled = true;
+        }
+    },
+
+    showRoomLink(code, url) {
+        elements.roomLink.value = url;
+        elements.roomCode.textContent = code;
+        elements.copyLinkButton.disabled = false;
+        elements.copyLinkButton.textContent = 'Copy link';
+        elements.shareLinkButton.hidden = typeof navigator.share !== 'function';
+    },
+
+    confirmLinkCopied() {
+        elements.copyLinkButton.textContent = 'Copied';
+        setTimeout(() => { elements.copyLinkButton.textContent = 'Copy link'; }, 2000);
+    },
+
+    setNames(you, them) {
+        gameState.yourName = you;
+        gameState.opponentName = them;
+        [elements.matchupYou, elements.hudYouName, elements.finalYouName].forEach(el => { el.textContent = you; });
+        [elements.matchupThem, elements.hudThemName, elements.finalThemName].forEach(el => { el.textContent = them; });
     },
 
     showCountdown(seconds, tipText) {
@@ -196,9 +236,52 @@ export const ui = {
         renderTally(elements.yourFinalTally, message.yourScore);
         renderTally(elements.opponentFinalTally, message.opponentScore);
 
+        this.renderStats(message.yourStats, message.opponentStats);
+
         elements.rematchButton.disabled = false;
         elements.rematchButton.textContent = 'Rematch';
         elements.rematchStatus.textContent = '';
+    },
+
+    renderStats(yours, theirs) {
+        elements.stats.hidden = !yours;
+        if (!yours) return;
+
+        const parts = [`${yours.correct} of ${yours.answered} right`];
+        if (yours.averageMillis != null) parts.push(`${seconds(yours.averageMillis)} per answer`);
+        if (yours.fastestMillis != null) parts.push(`fastest ${seconds(yours.fastestMillis)}`);
+        elements.statsSummary.textContent = yours.answered ? parts.join(', ') : 'No answers this round';
+
+        const answers = yours.answers || [];
+        elements.answerStrip.replaceChildren(...answers.map(a => {
+            const li = document.createElement('li');
+            li.className = a.correct ? 'ok' : 'miss';
+            li.textContent = a.correct ? '✓' : '✗';
+            return li;
+        }));
+        elements.answerList.replaceChildren(...answers.map(a => {
+            const li = document.createElement('li');
+            const question = document.createElement('span');
+            question.textContent = `${a.number}. ${a.question}`;
+            const given = document.createElement('span');
+            given.className = 'given';
+            given.textContent = a.answer;
+            const mark = document.createElement('span');
+            mark.className = `mark ${a.correct ? 'ok' : 'miss'}`;
+            mark.textContent = a.correct ? '✓' : '✗';
+            mark.setAttribute('aria-label', a.correct ? 'correct' : 'wrong');
+            const time = document.createElement('span');
+            time.className = 'time';
+            time.textContent = seconds(a.millis);
+            li.append(question, given, mark, time);
+            return li;
+        }));
+        elements.answerList.closest('details').hidden = answers.length === 0;
+        elements.answerList.closest('details').open = false;
+
+        elements.opponentSummary.textContent = theirs && theirs.answered > 0
+            ? `${gameState.opponentName}: ${theirs.correct} of ${theirs.answered} right`
+            : '';
     },
 
     updateRematchStatus(opponentAccepted, statusMessage) {

@@ -49,8 +49,7 @@ class GameWebSocketIntegrationTest {
             int expected = n;
             a.next("COUNTDOWN", m -> m.get("countdown").asInt() == expected, Duration.ofSeconds(5));
         }
-        JsonNode state = a.next("GAME_STATE");
-        assertThat(state.get("gameStatus").asText()).isEqualTo("RUNNING");
+        JsonNode state = a.next("GAME_STATE", m -> m.get("gameStatus").asText().equals("RUNNING"), Duration.ofSeconds(5));
         assertThat(state.get("yourName").asText()).isEqualTo("Player 1");
         assertThat(state.get("opponentName").asText()).isEqualTo("Player 2");
 
@@ -212,9 +211,116 @@ class GameWebSocketIntegrationTest {
     }
 
     private TestPlayer connect() throws Exception {
+        return connect(null);
+    }
+
+    /** Connects and joins public matchmaking */
+    private TestPlayer connect(String name) throws Exception {
+        TestPlayer player = connectOnly();
+        player.join(name);
+        Thread.sleep(150); // keep join order deterministic (first to join becomes Player 1)
+        return player;
+    }
+
+    private TestPlayer connectOnly() throws Exception {
         TestPlayer player = new TestPlayer(port);
         players.add(player);
-        Thread.sleep(150); // keep join order deterministic (first connection becomes Player 1)
         return player;
+    }
+
+    // ---------- Nicknames, private games, stats ----------
+
+    @Test
+    void nicknamesAreIntroducedBeforeTheCountdown() throws Exception {
+        TestPlayer a = connect("Yuko");
+        TestPlayer b = connect("Kai <script>");
+
+        JsonNode intro = a.next("GAME_STATE");
+        assertThat(intro.get("gameStatus").asText()).isEqualTo("READY");
+        assertThat(intro.get("yourName").asText()).isEqualTo("Yuko");
+        assertThat(intro.get("opponentName").asText()).as("unsafe characters removed").isEqualTo("Kai script");
+        a.next("COUNTDOWN");
+        assertThat(a.types().indexOf("GAME_STATE")).as("intro comes before the countdown")
+                .isLessThan(a.types().indexOf("COUNTDOWN"));
+
+        a.next("QUESTION", m -> true, Duration.ofSeconds(5));
+        b.close();
+        assertThat(a.next("GAME_OVER").get("disconnectMessage").asText()).isEqualTo("Kai script disconnected");
+    }
+
+    @Test
+    void identicalNicknamesStayDistinguishable() throws Exception {
+        TestPlayer a = connect("Kai");
+        connect("kai");
+
+        assertThat(a.next("GAME_STATE").get("opponentName").asText()).isEqualTo("kai (2)");
+    }
+
+    @Test
+    void privateGameIsOnlyJoinedThroughItsCode() throws Exception {
+        TestPlayer host = connectOnly();
+        host.send(Map.of("type", "JOIN_GAME", "playerName", "Host", "createRoom", true));
+        String code = host.next("ROOM_CREATED").get("roomCode").asText();
+        assertThat(code).matches("[A-Z2-9]{6}");
+
+        TestPlayer stranger = connect("Stranger"); // public matchmaking must not pair with the private game
+        TestPlayer friend = connectOnly();
+        friend.send(Map.of("type", "JOIN_GAME", "playerName", "Friend", "roomCode", code.toLowerCase()));
+
+        assertThat(host.next("GAME_STATE").get("opponentName").asText()).isEqualTo("Friend");
+        friend.next("COUNTDOWN");
+        Thread.sleep(500);
+        assertThat(stranger.all("COUNTDOWN")).as("stranger keeps waiting").isEmpty();
+
+        TestPlayer late = connectOnly();
+        late.send(Map.of("type", "JOIN_GAME", "roomCode", code));
+        assertThat(late.next("ERROR").get("errorMessage").asText()).as("a code works once").isEqualTo("Room not found");
+    }
+
+    @Test
+    void unknownRoomCodeIsRejected() throws Exception {
+        TestPlayer a = connectOnly();
+        a.send(Map.of("type", "JOIN_GAME", "roomCode", "NOPE42"));
+
+        assertThat(a.next("ERROR").get("errorMessage").asText()).isEqualTo("Room not found");
+    }
+
+    @Test
+    void privateGameClosesWhenTheHostLeaves() throws Exception {
+        TestPlayer host = connectOnly();
+        host.send(Map.of("type", "JOIN_GAME", "createRoom", true));
+        String code = host.next("ROOM_CREATED").get("roomCode").asText();
+        host.close();
+        Thread.sleep(300);
+
+        TestPlayer friend = connectOnly();
+        friend.send(Map.of("type", "JOIN_GAME", "roomCode", code));
+        assertThat(friend.next("ERROR").get("errorMessage").asText()).isEqualTo("Room not found");
+    }
+
+    @Test
+    void gameOverCarriesAnswerStats() throws Exception {
+        TestPlayer a = connect();
+        TestPlayer b = connect();
+        a.next("QUESTION", m -> true, Duration.ofSeconds(5));
+        a.answerCurrentCorrectly();
+        a.next("QUESTION", m -> m.get("questionNumber").asInt() == 2, Duration.ofSeconds(5));
+        a.answer(-999);
+        a.next("SCORE_UPDATE", m -> m.has("wasCorrect") && !m.get("wasCorrect").isNull() && !m.get("wasCorrect").asBoolean(), Duration.ofSeconds(5));
+        b.send(Map.of("type", "FORFEIT"));
+
+        JsonNode stats = a.next("GAME_OVER").get("yourStats");
+        assertThat(stats.get("answered").asInt()).isEqualTo(2);
+        assertThat(stats.get("correct").asInt()).isEqualTo(1);
+        assertThat(stats.get("averageMillis").asLong()).isGreaterThanOrEqualTo(0);
+        JsonNode answers = stats.get("answers");
+        assertThat(answers).hasSize(2);
+        assertThat(answers.get(0).get("correct").asBoolean()).isTrue();
+        assertThat(answers.get(1).get("answer").asText()).isEqualTo("-999");
+        assertThat(answers.get(1).get("question").asText()).isNotBlank();
+
+        JsonNode opponent = b.next("GAME_OVER").get("opponentStats");
+        assertThat(opponent.get("correct").asInt()).isEqualTo(1);
+        assertThat(opponent.has("answers")).as("the opponent's answers stay private").isFalse();
     }
 }

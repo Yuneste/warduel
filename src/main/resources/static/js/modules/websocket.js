@@ -21,7 +21,7 @@ export const websocket = {
         const socket = new WebSocket(`${protocol}//${window.location.host}/game`);
         gameState.setSocket(socket);
         intentionalClose = false;
-        elements.playButton.disabled = true;
+        ui.setLobbyBusy(true);
 
         // Events of a replaced socket (e.g. after "Find a new opponent") are ignored
         const current = handler => event => {
@@ -35,7 +35,9 @@ export const websocket = {
 
     handleOpen() {
         gameState.isConnected = true;
-        ui.showWaiting();
+        const { createRoom, roomCode } = gameState.joinRequest;
+        this.send({ type: 'JOIN_GAME', playerName: gameState.playerName, createRoom, roomCode });
+        ui.showWaiting(createRoom ? 'room' : 'queue');
         this.startHeartbeat();
     },
 
@@ -51,7 +53,7 @@ export const websocket = {
         console.error('WebSocket error:', event);
         if (!gameState.isConnected) {
             // Never got connected: stay in the lobby and let the player retry
-            elements.playButton.disabled = false;
+            ui.setLobbyBusy(false);
             ui.showToast("Couldn't reach the game server. Try again in a moment.");
         }
     },

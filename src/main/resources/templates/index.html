@@ -35,7 +35,15 @@
                 <span>to <span th:text="${winScore}">20</span> correct wins on the spot</span></li>
         </ul>
         <div class="lobby-actions">
+            <p id="invite-banner" class="invite-banner" hidden>You've been invited to a private game.</p>
+            <label class="name-field">
+                <span class="name-label">Your name on the board</span>
+                <input id="player-name" class="chalk name-input" type="text" maxlength="16"
+                       autocomplete="nickname" spellcheck="false" placeholder="Player">
+            </label>
             <button id="play-button" class="btn btn-primary" type="button">Find an opponent</button>
+            <button id="join-invite-button" class="btn btn-primary" type="button" hidden>Join the game</button>
+            <button id="friend-button" class="link-button" type="button">Play a friend instead</button>
             <p class="hint keyboard-only">On a keyboard? Type your answers and press Enter.</p>
         </div>
     </section>
@@ -47,8 +55,19 @@
             <p class="muted">The game starts as soon as someone else presses play.</p>
             <button id="leave-waiting-button" class="btn btn-secondary" type="button">Cancel</button>
         </div>
+        <div id="room-state" class="room-state" hidden>
+            <h2 class="chalk waiting-title">Invite a friend</h2>
+            <p class="muted">Send them this link. The game starts as soon as they open it.</p>
+            <div class="share-box">
+                <input id="room-link" class="share-link" type="text" readonly aria-label="Invite link">
+                <button id="copy-link-button" class="btn btn-primary share-button" type="button">Copy link</button>
+            </div>
+            <button id="share-link-button" class="btn btn-secondary" type="button" hidden>Share…</button>
+            <p class="muted room-code-line">Room code <span id="room-code" class="chalk room-code"></span></p>
+            <button id="leave-room-button" class="btn btn-secondary" type="button">Cancel</button>
+        </div>
         <div id="countdown-state" class="countdown-state" hidden>
-            <p class="matchup"><span class="you-color">You</span> <span class="chalk vs">vs</span> <span class="them-color">Opponent</span></p>
+            <p class="matchup"><span id="matchup-you" class="you-color">You</span> <span class="chalk vs">vs</span> <span id="matchup-them" class="them-color">Opponent</span></p>
             <p id="countdown-number" class="chalk countdown-number" aria-live="assertive">3</p>
             <p id="countdown-tip" class="muted countdown-tip"></p>
         </div>
@@ -58,7 +77,7 @@
     <section id="game-area" class="screen game" hidden>
         <header class="hud">
             <div class="hud-player">
-                <span class="hud-label">You</span>
+                <span id="hud-you-name" class="hud-label hud-name">You</span>
                 <div id="your-tally" class="tally you" role="img" aria-label="Your score: 0"></div>
             </div>
             <div class="hud-clock">
@@ -66,7 +85,7 @@
                 <span class="hud-label">sec</span>
             </div>
             <div class="hud-player them">
-                <span class="hud-label">Opponent</span>
+                <span id="hud-them-name" class="hud-label hud-name">Opponent</span>
                 <div id="opponent-tally" class="tally them" role="img" aria-label="Opponent score: 0"></div>
             </div>
         </header>
@@ -106,16 +125,25 @@
         <p id="result-reason" class="muted result-reason" hidden></p>
         <div class="final-scores">
             <div class="final-score">
-                <span class="hud-label">You</span>
+                <span id="final-you-name" class="hud-label hud-name">You</span>
                 <span id="your-final-score" class="chalk final-number you-color">0</span>
                 <div id="your-final-tally" class="tally you" aria-hidden="true"></div>
             </div>
             <div class="final-score">
-                <span class="hud-label">Opponent</span>
+                <span id="final-them-name" class="hud-label hud-name">Opponent</span>
                 <span id="opponent-final-score" class="chalk final-number them-color">0</span>
                 <div id="opponent-final-tally" class="tally them" aria-hidden="true"></div>
             </div>
         </div>
+        <section id="stats" class="stats" aria-label="Your answers" hidden>
+            <p id="stats-summary" class="stats-summary"></p>
+            <ol id="answer-strip" class="answer-strip" aria-hidden="true"></ol>
+            <details class="answer-details">
+                <summary>Show all your answers</summary>
+                <ol id="answer-list" class="answer-list"></ol>
+            </details>
+            <p id="opponent-summary" class="muted opponent-summary"></p>
+        </section>
         <div class="result-actions">
             <button id="rematch-button" class="btn btn-primary" type="button">Rematch</button>
             <p id="rematch-status" class="muted rematch-status" role="status"></p>

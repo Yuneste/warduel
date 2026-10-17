@@ -3,12 +3,14 @@ package com.warduel.warduel.service;
 import com.warduel.warduel.config.GameConfiguration;
 import com.warduel.warduel.model.GameSession;
 import com.warduel.warduel.model.Player;
+import com.warduel.warduel.model.PlayerNames;
 import com.warduel.warduel.model.Question;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,6 +32,12 @@ public class GameService {
     // Warteschlange für Spieler die ein Spiel suchen
     private GameSession waitingGame = null;
 
+    // Private games waiting for the invited friend, by room code
+    private final Map<String, GameSession> privateRooms = new ConcurrentHashMap<>();
+    private static final String ROOM_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L
+    private static final int ROOM_CODE_LENGTH = 6;
+    private final SecureRandom random = new SecureRandom();
+
     public GameService(QuestionGeneratorService questionGenerator, GameConfiguration gameConfig) {
         this.questionGenerator = questionGenerator;
         this.gameConfig = gameConfig;
@@ -40,6 +48,13 @@ public class GameService {
      * Entweder wird er zum wartenden Spiel hinzugefügt, oder ein neues erstellt
      */
     public synchronized GameSession joinGame(WebSocketSession session) {
+        return joinGame(session, null);
+    }
+
+    /**
+     * Public matchmaking with a chosen nickname (null or blank gets "Player 1"/"Player 2")
+     */
+    public synchronized GameSession joinGame(WebSocketSession session, String playerName) {
         String playerId = session.getId();
 
         // Prüfe ob Spieler bereits in einem Spiel ist
@@ -48,7 +63,7 @@ public class GameService {
             return playerToGame.get(playerId);
         }
 
-        Player player = new Player(playerId, session, "");
+        Player player = new Player(playerId, session, PlayerNames.sanitize(playerName));
 
         // Gibt es ein wartendes Spiel?
         // CRITICAL: Skip finished/running games (only join WAITING games)
@@ -83,6 +98,56 @@ public class GameService {
         log.info("player {} created new game {} and is waiting", playerId, newGame.getGameId());
 
         return newGame;
+    }
+
+    /**
+     * Opens a private game that only the friend with the room code can join
+     */
+    public synchronized GameSession createPrivateGame(WebSocketSession session, String playerName) {
+        String playerId = session.getId();
+        if(playerToGame.containsKey(playerId)) {
+            return playerToGame.get(playerId);
+        }
+
+        String code;
+        do {
+            StringBuilder sb = new StringBuilder(ROOM_CODE_LENGTH);
+            for(int i = 0; i < ROOM_CODE_LENGTH; i++) {
+                sb.append(ROOM_CODE_ALPHABET.charAt(random.nextInt(ROOM_CODE_ALPHABET.length())));
+            }
+            code = sb.toString();
+        } while(privateRooms.containsKey(code));
+
+        GameSession game = new GameSession();
+        game.setRoomCode(code);
+        game.addPlayer(new Player(playerId, session, PlayerNames.sanitize(playerName)));
+        privateRooms.put(code, game);
+        playerToGame.put(playerId, game);
+        log.info("Player {} opened private game {} (room {})", playerId, game.getGameId(), code);
+        return game;
+    }
+
+    /**
+     * Joins a friend's private game
+     * @return the now full game, or null if the code is unknown, expired or the game is already full
+     */
+    public synchronized GameSession joinPrivateGame(WebSocketSession session, String playerName, String roomCode) {
+        String playerId = session.getId();
+        if(playerToGame.containsKey(playerId)) {
+            return playerToGame.get(playerId);
+        }
+
+        GameSession game = roomCode == null ? null : privateRooms.get(roomCode.trim().toUpperCase());
+        if(game == null || game.isFull() || game.getStatus() != GameSession.GameStatus.WAITING) {
+            return null;
+        }
+
+        game.addPlayer(new Player(playerId, session, PlayerNames.sanitize(playerName)));
+        playerToGame.put(playerId, game);
+        privateRooms.remove(game.getRoomCode()); // a room code works once
+        prepareGame(game);
+        log.info("Player {} joined private game {}", playerId, game.getGameId());
+        return game;
     }
 
     /**
@@ -152,6 +217,11 @@ public class GameService {
         if(game != null) {
             boolean removed = game.removePlayer(playerId);
             playerToGame.remove(playerId);
+
+            // A private game whose host left can no longer be joined
+            if(game.getRoomCode() != null) {
+                privateRooms.remove(game.getRoomCode(), game);
+            }
 
             // CRITICAL: Clear waitingGame if it's this game (prevents ghost matchmaking)
             if(waitingGame == game) {

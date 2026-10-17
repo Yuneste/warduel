@@ -15,12 +15,18 @@ import { gameActions } from './modules/gameActions.js';
 inputHandler.setup();
 setupButtons();
 websocket.setupVisibilityDetection();
+gameActions.restoreName();
 ui.showLobby();
 
 function setupButtons() {
     const buttons = [
         [elements.playButton, () => gameActions.startGame()],
+        [elements.joinInviteButton, () => gameActions.joinInvite()],
+        [elements.friendButton, () => gameActions.playFriend()],
         [elements.leaveWaitingButton, () => gameActions.leaveQueue()],
+        [elements.leaveRoomButton, () => gameActions.leaveQueue()],
+        [elements.copyLinkButton, () => gameActions.copyLink()],
+        [elements.shareLinkButton, () => gameActions.shareLink()],
         [elements.forfeitButton, () => gameActions.forfeit()],
         [elements.rematchButton, () => gameActions.requestRematch()],
         [elements.newGameButton, () => gameActions.findNewOpponent()],
@@ -31,6 +37,13 @@ function setupButtons() {
         animations.addHapticFeedback(button);
         button.addEventListener('click', action);
     }
+
+    // Enter in the name field starts the main action of the lobby
+    elements.playerName.addEventListener('keydown', event => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        (gameState.inviteCode ? elements.joinInviteButton : elements.playButton).click();
+    });
 }
 
 window.addEventListener('beforeunload', () => {

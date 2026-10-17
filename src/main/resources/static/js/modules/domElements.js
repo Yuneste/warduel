@@ -14,13 +14,29 @@ export const elements = {
     gameArea: byId('game-area'),
     resultArea: byId('result-area'),
 
-    // Queue and countdown
+    // Lobby
+    playerName: byId('player-name'),
+    inviteBanner: byId('invite-banner'),
+    joinInviteButton: byId('join-invite-button'),
+    friendButton: byId('friend-button'),
+
+    // Queue, private room and countdown
     queueState: byId('queue-state'),
+    roomState: byId('room-state'),
+    roomLink: byId('room-link'),
+    roomCode: byId('room-code'),
+    copyLinkButton: byId('copy-link-button'),
+    shareLinkButton: byId('share-link-button'),
+    leaveRoomButton: byId('leave-room-button'),
+    matchupYou: byId('matchup-you'),
+    matchupThem: byId('matchup-them'),
     countdownState: byId('countdown-state'),
     countdownNumber: byId('countdown-number'),
     countdownTip: byId('countdown-tip'),
 
     // Game
+    hudYouName: byId('hud-you-name'),
+    hudThemName: byId('hud-them-name'),
     questionText: byId('question-text'),
     questionNumber: byId('question-number'),
     timer: byId('timer'),
@@ -33,6 +49,13 @@ export const elements = {
     // Result
     resultMessage: byId('result-message'),
     resultReason: byId('result-reason'),
+    finalYouName: byId('final-you-name'),
+    finalThemName: byId('final-them-name'),
+    stats: byId('stats'),
+    statsSummary: byId('stats-summary'),
+    answerStrip: byId('answer-strip'),
+    answerList: byId('answer-list'),
+    opponentSummary: byId('opponent-summary'),
     yourFinalScore: byId('your-final-score'),
     opponentFinalScore: byId('opponent-final-score'),
     yourFinalTally: byId('your-final-tally'),

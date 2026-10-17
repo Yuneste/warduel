@@ -6,6 +6,7 @@
 import { gameState } from './gameState.js';
 import { ui } from './uiController.js';
 import { animations } from './animations.js';
+import { gameActions } from './gameActions.js';
 
 // How long the ✓ / ✗ next to the answer stays before the next question replaces it
 const FEEDBACK_HOLD_MS = 350;
@@ -17,6 +18,9 @@ export function handleMessage(message) {
     switch (message.type) {
         case 'GAME_STATE':
             handleGameState(message);
+            break;
+        case 'ROOM_CREATED':
+            handleRoomCreated(message);
             break;
         case 'COUNTDOWN':
             handleCountdown(message);
@@ -41,8 +45,14 @@ export function handleMessage(message) {
     }
 }
 
+function handleRoomCreated(message) {
+    const url = `${window.location.origin}/?room=${encodeURIComponent(message.roomCode)}`;
+    ui.showRoomLink(message.roomCode, url);
+}
+
 function handleGameState(message) {
     gameState.currentGameState = message.gameStatus;
+    if (message.yourName) ui.setNames(message.yourName, message.opponentName);
     if (message.gameStatus === 'RUNNING') {
         gameState.opponentGone = false;
         ui.resetGameBoard();
@@ -115,6 +125,14 @@ function handleError(message) {
         gameState.opponentGone = true;
         ui.disableRematch();
         if (!alreadyExplained) ui.showToast('Your opponent left the game.');
+        return;
+    }
+
+    if (text === 'Room not found') {
+        // Expired or already used invite link: back to the normal lobby
+        gameActions.forgetInvite();
+        gameActions.leaveQueue();
+        ui.showToast('This invite link has expired or the game already started. Ask your friend for a new one.', 6000);
         return;
     }
 

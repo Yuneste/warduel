@@ -21,6 +21,8 @@ public class GameOverMessage extends BaseMessage {
     private boolean draw; // Unentschieden
     private String winnerName;
     private String disconnectMessage; // Message if someone disconnected
+    private PlayerStats yourStats;
+    private PlayerStats opponentStats;
 
     public GameOverMessage() {
         super();

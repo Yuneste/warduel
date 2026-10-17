@@ -310,6 +310,53 @@ a {
     padding-top: var(--space-7);
 }
 
+.lobby-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.invite-banner {
+    padding: var(--space-3) var(--space-4);
+    border: 2px dashed var(--you);
+    border-radius: var(--radius-hand);
+    color: var(--you);
+    font-weight: 600;
+    text-align: center;
+}
+
+.name-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-bottom: var(--space-2);
+}
+
+.name-label {
+    font-size: 14px;
+    color: var(--chalk-soft);
+}
+
+.name-input {
+    width: 100%;
+    min-height: 48px;
+    padding: var(--space-1) var(--space-1) var(--space-2);
+    border: 0;
+    border-bottom: 3px solid var(--chalk-line);
+    background: transparent;
+    color: var(--chalk);
+    font-size: 30px;
+}
+
+.name-input::placeholder {
+    color: var(--chalk-line);
+}
+
+.name-input:focus {
+    outline: none;
+    border-bottom-color: var(--you);
+}
+
 .hint {
     margin-top: var(--space-3);
     font-size: 14px;
@@ -363,6 +410,50 @@ a {
     max-width: 260px;
 }
 
+.room-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+}
+
+.room-state > .btn {
+    max-width: 320px;
+}
+
+.share-box {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+    max-width: 420px;
+}
+
+.share-link {
+    width: 100%;
+    min-height: 48px;
+    padding: var(--space-2) var(--space-3);
+    border: 2px dashed var(--chalk-line);
+    border-radius: var(--radius-hand);
+    background: rgba(0, 0, 0, 0.12);
+    color: var(--chalk);
+    font: inherit;
+    font-size: 15px;
+    text-align: center;
+}
+
+.room-code-line {
+    font-size: 15px;
+}
+
+.room-code {
+    margin-left: var(--space-1);
+    font-size: 26px;
+    letter-spacing: 0.12em;
+    color: var(--you);
+}
+
 .matchup {
     font-size: 22px;
     font-weight: 600;
@@ -406,6 +497,26 @@ a {
 
 .hud-player.them {
     text-align: right;
+}
+
+/* Nicknames can be up to 16 characters; never let them push the clock around */
+.hud-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+.hud-player .hud-name {
+    color: var(--you);
+}
+
+.hud-player.them .hud-name {
+    color: var(--them);
+}
+
+.hud-player {
+    min-width: 0;
 }
 
 .hud-clock {
@@ -664,11 +775,116 @@ a {
     max-width: 150px;
 }
 
+.final-score {
+    min-width: 0;
+}
+
+.final-score .hud-name {
+    max-width: 100%;
+}
+
+/* Post-game stats */
+.stats {
+    margin-top: var(--space-5);
+    font-size: 15px;
+}
+
+.stats-summary {
+    color: var(--chalk);
+}
+
+.answer-strip {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px 6px;
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--font-chalk);
+    font-size: 22px;
+    line-height: 1.1;
+}
+
+.answer-strip .ok {
+    color: var(--good);
+}
+
+.answer-strip .miss {
+    color: var(--them);
+}
+
+.answer-details {
+    margin-top: var(--space-2);
+    text-align: left;
+}
+
+.answer-details summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--chalk-soft);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.answer-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.answer-list {
+    max-width: 320px;
+    margin: var(--space-2) auto 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-1);
+}
+
+.answer-list li {
+    display: grid;
+    grid-template-columns: 1fr auto auto 3.2em;
+    gap: var(--space-3);
+    align-items: baseline;
+    padding-bottom: var(--space-1);
+    border-bottom: 1px dashed var(--chalk-ghost);
+}
+
+.answer-list .given {
+    font-weight: 600;
+}
+
+.answer-list .mark {
+    font-family: var(--font-chalk);
+    font-size: 20px;
+}
+
+.answer-list .ok {
+    color: var(--good);
+}
+
+.answer-list .miss {
+    color: var(--them);
+}
+
+.answer-list .time {
+    font-size: 13px;
+    color: var(--chalk-soft);
+    text-align: right;
+}
+
+.opponent-summary {
+    margin-top: var(--space-2);
+}
+
 .result-actions {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    margin-top: var(--space-7);
+    margin-top: var(--space-6);
 }
 
 .rematch-status {
@@ -815,6 +1031,10 @@ a {
         grid-column: 1 / -1;
     }
 
+    .hud-name {
+        font-size: 16px;
+    }
+
     .question-area {
         justify-content: center;
         margin-top: 0;
@@ -894,6 +1114,75 @@ a {
         min-height: 44px;
         padding-top: var(--space-1);
         padding-bottom: var(--space-1);
+    }
+
+    /* Lobby */
+    .title {
+        font-size: 52px;
+    }
+
+    .tagline {
+        margin-top: var(--space-2);
+        font-size: 19px;
+    }
+
+    .rules {
+        margin-top: var(--space-4);
+        gap: var(--space-2);
+        font-size: 15px;
+    }
+
+    .rule-number {
+        font-size: 24px;
+    }
+
+    .lobby-actions {
+        padding-top: var(--space-4);
+        gap: var(--space-2);
+    }
+
+    .name-field {
+        margin-bottom: 0;
+    }
+
+    .name-input {
+        min-height: 44px;
+        font-size: 24px;
+    }
+
+    .btn {
+        min-height: 52px;
+    }
+
+    .btn-primary {
+        font-size: 18px;
+    }
+
+    /* Result */
+    .result-title {
+        font-size: 52px;
+    }
+
+    .final-scores {
+        margin-top: var(--space-3);
+    }
+
+    .final-number {
+        font-size: 46px;
+    }
+
+    .stats {
+        margin-top: var(--space-3);
+        font-size: 14px;
+    }
+
+    .answer-details summary {
+        min-height: 40px;
+    }
+
+    .result-actions {
+        margin-top: var(--space-3);
+        gap: var(--space-2);
     }
 }
 

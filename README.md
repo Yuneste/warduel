@@ -12,7 +12,8 @@ Real-time multiplayer math duel: two players race to solve 20 problems in 60 sec
 
 ## Features
 
-- Real-time 1v1 matches via WebSocket
+- Real-time 1v1 matches via WebSocket: random opponent, or a friend through a private invite link
+- Nicknames, and post-game stats with every answer and how long it took
 - Random math questions (addition, subtraction, multiplication, division)
 - 60-second rounds with live score updates
 - Rematch system for consecutive games

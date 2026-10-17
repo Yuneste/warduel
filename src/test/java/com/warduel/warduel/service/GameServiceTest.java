@@ -93,6 +93,42 @@ class GameServiceTest {
     }
 
     @Test
+    void privateGameWaitsForItsFriendNotForStrangers() {
+        GameSession room = service.createPrivateGame(session("host"), "Host");
+        assertThat(room.getRoomCode()).matches("[A-Z2-9]{6}");
+
+        GameSession publicGame = service.joinGame(session("stranger"), "Stranger");
+        assertThat(publicGame).isNotSameAs(room);
+
+        GameSession joined = service.joinPrivateGame(session("friend"), "Friend", room.getRoomCode().toLowerCase());
+        assertThat(joined).isSameAs(room);
+        assertThat(room.getStatus()).isEqualTo(GameStatus.READY);
+        assertThat(room.getPlayer2().getDisplayName()).isEqualTo("Friend");
+        assertThat(room.getPlayer2().getQuestions()).hasSize(20);
+    }
+
+    @Test
+    void roomCodesWorkOnceAndDieWithTheHost() {
+        GameSession room = service.createPrivateGame(session("host"), null);
+        service.joinPrivateGame(session("friend"), null, room.getRoomCode());
+        assertThat(service.joinPrivateGame(session("late"), null, room.getRoomCode())).isNull();
+
+        GameSession abandoned = service.createPrivateGame(session("host2"), null);
+        service.removePlayer("host2");
+        assertThat(service.joinPrivateGame(session("friend2"), null, abandoned.getRoomCode())).isNull();
+        assertThat(service.joinPrivateGame(session("friend3"), null, "XXXXXX")).isNull();
+    }
+
+    @Test
+    void nicknamesAreKeptOrDefaulted() {
+        service.joinGame(session("a"), "  Yuko  ");
+        GameSession game = service.joinGame(session("b"), "");
+
+        assertThat(game.getPlayer1().getDisplayName()).isEqualTo("Yuko");
+        assertThat(game.getPlayer2().getDisplayName()).isEqualTo("Player 2");
+    }
+
+    @Test
     void findsTheOpponent() {
         GameSession game = join("a", "b");
 

@@ -6,6 +6,9 @@
 // Game settings rendered into <body data-*> by the server
 const settings = document.body.dataset;
 
+// Invite links look like /?room=K7QM2X
+const inviteCode = new URLSearchParams(window.location.search).get('room');
+
 export const gameState = {
     // Settings from the server (fall back to the defaults if the page was opened without them)
     config: {
@@ -13,6 +16,13 @@ export const gameState = {
         durationSeconds: Number(settings.duration) || 60,
         winScore: Number(settings.winScore) || 20
     },
+
+    // Who we are and how we want to join (sent as JOIN_GAME once connected)
+    playerName: '',
+    inviteCode: inviteCode ? inviteCode.trim().toUpperCase() : null,
+    joinRequest: { createRoom: false, roomCode: null },
+    yourName: 'You',
+    opponentName: 'Opponent',
 
     // Connection
     socket: null,

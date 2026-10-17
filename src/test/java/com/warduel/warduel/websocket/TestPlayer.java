@@ -50,6 +50,15 @@ class TestPlayer extends TextWebSocketHandler implements AutoCloseable {
         }
     }
 
+    /** Enters public matchmaking (null name: the server picks "Player 1"/"Player 2") */
+    void join(String name) throws Exception {
+        Map<String, Object> message = new java.util.HashMap<>(Map.of("type", "JOIN_GAME"));
+        if(name != null) {
+            message.put("playerName", name);
+        }
+        send(message);
+    }
+
     void answer(int value) throws Exception {
         send(Map.of("type", "ANSWER", "answer", value));
     }
@@ -93,6 +102,13 @@ class TestPlayer extends TextWebSocketHandler implements AutoCloseable {
     List<JsonNode> all(String type) {
         synchronized(received) {
             return received.stream().filter(m -> type.equals(m.path("type").asText())).toList();
+        }
+    }
+
+    /** Message types in arrival order */
+    List<String> types() {
+        synchronized(received) {
+            return received.stream().map(m -> m.path("type").asText()).toList();
         }
     }
 

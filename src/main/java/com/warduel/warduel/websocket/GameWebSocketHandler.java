@@ -45,6 +45,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private static final long CONNECTION_CHECK_INTERVAL_SECONDS = 3;
     private final Map<String, Instant> lastMessageTime = new ConcurrentHashMap<>();
 
+    // A connection that hasn't sent JOIN_GAME by then is closed
+    private static final long JOIN_TIMEOUT_SECONDS = 15;
+
     // Game timing constants
     private static final int COUNTDOWN_DURATION_SECONDS = 3;
     private static final long REMATCH_DELAY_SECONDS = 1;
@@ -167,12 +170,17 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     session, SEND_TIME_LIMIT_MS, SEND_BUFFER_SIZE_LIMIT);
             sessions.put(playerId, safeSession);
 
-            GameSession game = gameService.joinGame(safeSession);
-
-            // Wenn Spiel voll ist, starte es
-            if(game.isFull()) {
-                startGame(game);
-            }
+            // Matchmaking starts with the client's JOIN_GAME (it carries the nickname / room code)
+            scheduler.schedule(() -> {
+                if(safeSession.isOpen() && gameService.getGameByPlayerId(playerId) == null) {
+                    log.info("Closing connection {} - no JOIN_GAME within {}s", playerId, JOIN_TIMEOUT_SECONDS);
+                    try {
+                        safeSession.close(CloseStatus.POLICY_VIOLATION);
+                    } catch (IOException e) {
+                        log.warn("Error closing idle connection {}", playerId, e);
+                    }
+                }
+            }, JOIN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         } catch (Exception e) {
             log.error("Error during connection establishment", e);
@@ -209,6 +217,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             BaseMessage baseMsg = objectMapper.readValue(payload, BaseMessage.class);
 
             switch(baseMsg.getType()) {
+                case "JOIN_GAME":
+                    handleJoin(session, (JoinGameMessage) baseMsg);
+                    break;
                 case "ANSWER":
                     handleAnswer(session, payload);
                     break;
@@ -228,6 +239,38 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         } catch (Exception e) {
             log.error("Error handling message from {}: {}", playerId, e.getMessage(), e);
             sendError(session, "Error processing message: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Puts the player into public matchmaking, a new private game, or a friend's private game
+     */
+    private void handleJoin(WebSocketSession session, JoinGameMessage join) throws IOException {
+        String playerId = session.getId();
+        if(gameService.getGameByPlayerId(playerId) != null) {
+            log.warn("Player {} sent JOIN_GAME twice", playerId);
+            return;
+        }
+        WebSocketSession safeSession = sessions.getOrDefault(playerId, session);
+
+        GameSession game;
+        if(join.isCreateRoom()) {
+            game = gameService.createPrivateGame(safeSession, join.getPlayerName());
+            sendMessage(session, new RoomCreatedMessage(game.getRoomCode()));
+            return; // the game starts when the friend joins
+        } else if(join.getRoomCode() != null && !join.getRoomCode().isBlank()) {
+            game = gameService.joinPrivateGame(safeSession, join.getPlayerName(), join.getRoomCode());
+            if(game == null) {
+                sendError(session, "Room not found");
+                return;
+            }
+        } else {
+            game = gameService.joinGame(safeSession, join.getPlayerName());
+        }
+
+        // Wenn Spiel voll ist, starte es
+        if(game.isFull()) {
+            startGame(game);
         }
     }
 
@@ -297,6 +340,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             if(correct) {
                 player.incrementScore();
             }
+            player.getAnswerLog().add(new AnswerRecord(currentQuestionIndex + 1, currentQuestion.getQuestionText(),
+                    String.valueOf(answerMsg.getAnswer()), correct,
+                    System.currentTimeMillis() - player.getQuestionShownAtMillis()));
 
             // Sende Score Update an beide Spieler
             sendScoreUpdate(player, opponent, correct);
@@ -401,12 +447,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         try {
             if(winner != null) {
-                sendMessage(winner.getSession(),
-                        new GameOverMessage(winnerScore, loserScore, true, false, winnerName, reason));
+                sendMessage(winner.getSession(), withStats(
+                        new GameOverMessage(winnerScore, loserScore, true, false, winnerName, reason), winner, loser));
             }
             if(loser != null) {
-                sendMessage(loser.getSession(),
-                        new GameOverMessage(loserScore, winnerScore, false, false, winnerName));
+                sendMessage(loser.getSession(), withStats(
+                        new GameOverMessage(loserScore, winnerScore, false, false, winnerName), loser, winner));
             }
         } catch (IOException e) {
             log.error("Error sending early game over", e);
@@ -476,6 +522,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    private static GameOverMessage withStats(GameOverMessage msg, @Nullable Player you, @Nullable Player opponent) {
+        msg.setYourStats(PlayerStats.of(you, true));
+        msg.setOpponentStats(PlayerStats.of(opponent, false));
+        return msg;
+    }
+
     private void sendQuietly(WebSocketSession session, BaseMessage message) {
         try {
             sendMessage(session, message);
@@ -500,6 +552,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         if(showCountdown) {
             log.info("Game {} starting countdown", game.getGameId());
+
+            // Introduce the players to each other before the countdown
+            sendMessage(player1.getSession(), new GameStateMessage(GameSession.GameStatus.READY,
+                    player1.getDisplayName(), player2.getDisplayName(), (long) game.getDurationSeconds()));
+            sendMessage(player2.getSession(), new GameStateMessage(GameSession.GameStatus.READY,
+                    player2.getDisplayName(), player1.getDisplayName(), (long) game.getDurationSeconds()));
 
             // Tips to show during countdown
             String[] tips = {
@@ -612,6 +670,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
 
         int questionNumber = player.getCurrentQuestionIndex() + 1;
+        player.setQuestionShownAtMillis(System.currentTimeMillis());
 
         QuestionMessage msg = new QuestionMessage(
                 question.getQuestionText(),
@@ -698,7 +757,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         int playerScore = player.getScore();
         int opponentScore = (opponent != null) ? opponent.getScore() : 0;
-        boolean youWon = !isDraw && player.getDisplayName().equals(winnerName);
+        // Decided by score, not by name: two players may pick the same nickname
+        boolean youWon = !isDraw && playerScore > opponentScore;
 
         log.info("Sending GameOver to {}: yourScore={}, opponentScore={}, youWon={}, isDraw={}, winnerName={}",
                 player.getDisplayName(), playerScore, opponentScore, youWon, isDraw, winnerName);
@@ -710,6 +770,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 isDraw,
                 winnerName
         );
+        withStats(msg, player, opponent);
 
         sendMessage(player.getSession(), msg);
     }

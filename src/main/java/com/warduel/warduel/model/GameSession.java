@@ -45,6 +45,9 @@ public class GameSession {
     // Number of rounds started so far (1 = first match, 2+ = rematches)
     private volatile int round;
 
+    // Code of a private game shared by link; null for public matchmaking
+    private volatile String roomCode;
+
     // Zeit-Tracking (volatile für Thread-Sicherheit)
     private volatile LocalDateTime startTime;
     private volatile LocalDateTime endTime;
@@ -75,15 +78,25 @@ public class GameSession {
     public synchronized boolean addPlayer(Player player) {
         if(player1 == null) {
             player1 = player;
-            player.setDisplayName("Player 1");
+            nameOrDefault(player, "Player 1");
             return true;
         } else if(player2 == null) {
             player2 = player;
-            player.setDisplayName("Player 2");
+            nameOrDefault(player, "Player 2");
+            // Two players with the same nickname would be indistinguishable on screen
+            if(player.getDisplayName().equalsIgnoreCase(player1.getDisplayName())) {
+                player.setDisplayName(player.getDisplayName() + " (2)");
+            }
             this.status = GameStatus.READY;
             return true;
         }
         return false;
+    }
+
+    private static void nameOrDefault(Player player, String fallback) {
+        if(player.getDisplayName() == null || player.getDisplayName().isBlank()) {
+            player.setDisplayName(fallback);
+        }
     }
 
     /**
@@ -213,6 +226,10 @@ public class GameSession {
         } else {
             return "Draw";
         }
+    }
+
+    public boolean isPrivate() {
+        return roomCode != null;
     }
 
     /**
