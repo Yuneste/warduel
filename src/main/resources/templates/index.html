@@ -20,6 +20,9 @@
     <!-- Messages from the game (opponent left, connection lost, ...) -->
     <p id="toast" class="toast" role="alert" hidden></p>
 
+    <!-- Chalk dust and streak call-outs are drawn here -->
+    <div id="effects-layer" class="effects-layer" aria-hidden="true"></div>
+
     <!-- Lobby -->
     <section id="lobby-area" class="screen lobby" aria-labelledby="lobby-title">
         <div class="lobby-intro">
@@ -184,6 +187,10 @@
     <footer class="tray">
         <a href="/impressum">Impressum</a>
         <a href="/datenschutz">Datenschutz</a>
+        <button id="mute-button" class="mute-button" type="button" aria-pressed="false" aria-label="Sound off">
+            <svg class="icon-sound-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+            <svg class="icon-sound-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+        </button>
     </footer>
 </main>
 

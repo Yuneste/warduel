@@ -10,6 +10,7 @@ import { websocket } from './modules/websocket.js';
 import { inputHandler } from './modules/inputHandler.js';
 import { animations } from './modules/animations.js';
 import { gameActions } from './modules/gameActions.js';
+import { sound } from './modules/sound.js';
 
 // Modules load deferred, so the DOM is ready here
 inputHandler.setup();
@@ -17,6 +18,27 @@ setupButtons();
 websocket.setupVisibilityDetection();
 gameActions.restoreName();
 ui.showLobby();
+setupSound();
+
+// Browsers only allow audio after a user gesture
+function setupSound() {
+    const unlock = () => sound.unlock();
+    document.addEventListener('pointerdown', unlock, { capture: true });
+    document.addEventListener('keydown', unlock, { capture: true });
+
+    const render = () => {
+        const muted = sound.isMuted();
+        elements.muteButton.setAttribute('aria-pressed', String(muted));
+        elements.muteButton.setAttribute('aria-label', muted ? 'Sound off' : 'Sound on');
+        elements.muteButton.title = muted ? 'Sound off' : 'Sound on';
+    };
+    elements.muteButton.addEventListener('click', () => {
+        sound.setMuted(!sound.isMuted());
+        render();
+        sound.tap();
+    });
+    render();
+}
 
 function setupButtons() {
     const buttons = [

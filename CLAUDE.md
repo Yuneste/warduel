@@ -68,6 +68,7 @@ When you change game behavior, add or adjust a scenario there. When changing por
   - `websocket.js`: connection, heartbeat, reload on loss. Events from a replaced socket are ignored.
   - `messageHandlers.js`: routes by `type`. It holds the ✓/✗ answer mark for `FEEDBACK_HOLD_MS` before the next question replaces it. In a `SCORE_UPDATE`, `wasCorrect` is `null` when the update is about the opponent's answer.
   - `gameState.js` (state, settings, client timer) and `uiController.js` (DOM only, no logic; also draws the tally-mark scores as SVG).
+  - `sound.js`: every sound is synthesized with the Web Audio API (no audio files). The context is created on the first user gesture, and mute is stored as `mathwars.muted`. `effects.js`: chalk dust and streak callouts in `#effects-layer`, skipped under `prefers-reduced-motion`. `messageHandlers.js` triggers both: correct/wrong, streaks at 3/5/10/15, the opponent scoring, the countdown intro, ticks in the last 5 seconds, and the result.
   - `gameActions.js`: play, cancel, give up (needs a second tap), rematch, find a new opponent, back to the main menu. `inputHandler.js`: number pad plus keyboard (digits, Backspace, `-`, Enter, Escape). `domElements.js`: cached element lookups.
 - **Design: "Chalkboard duel".** All tokens are CSS variables at the top of `static/css/style.css`, the only stylesheet:
   - colors: board `#263d33`, chalk `#eef0e8`, you = yellow `#f2d45c`, opponent = pink `#f3a1b5`, correct = green `#a8e6a1`, wood tray
@@ -77,11 +78,8 @@ When you change game behavior, add or adjust a scenario there. When changing por
 
 ## Roadmap
 
-Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs), 3 (tests, CI, JDK 25 support) and 4 (chalkboard redesign) are done. From Phase 5, 5a (nicknames, invite links, stats), 5b (challenge types) and 5c (leaderboard) are done. If you change what is stored or sent, update `templates/datenschutz.html` (German privacy policy) to match.
+Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs), 3 (tests, CI, JDK 25 support) and 4 (chalkboard redesign) are done. Phase 5 is done: 5a (nicknames, invite links, stats), 5b (challenge types), 5c (leaderboard) and 5d (sound and game feel). If you change what is stored or sent, update `templates/datenschutz.html` (German privacy policy) to match.
 
-5. **Features and game feel:**
-   - game feel in the chalkboard style: a match intro, streaks and combos, chalk-dust effects on correct answers, a celebration on wins
-   - Web Audio sound effects (chalk scratches, taps, countdown, win/lose) with a mute button
 6. **Hosting:** a free Render web service (`Dockerfile` + `render.yaml`) with Postgres on Neon. No custom domain is needed.
 
 ## Conventions

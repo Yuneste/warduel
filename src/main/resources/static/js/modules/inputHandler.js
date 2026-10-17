@@ -8,6 +8,7 @@ import { elements } from './domElements.js';
 import { ui } from './uiController.js';
 import { websocket } from './websocket.js';
 import { animations } from './animations.js';
+import { sound } from './sound.js';
 
 const MAX_DIGITS = 7;
 
@@ -81,6 +82,7 @@ export const inputHandler = {
 
     handleKey(key) {
         if (gameState.awaitingResult) return; // wait for the previous answer's result
+        if (key !== 'Enter') sound.tap();
         if (key === 'Enter') this.submitAnswer();
         else if (key === 'Backspace') this.deleteDigit();
         else if (key === 'Escape') this.setAnswer('');

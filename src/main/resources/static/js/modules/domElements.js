@@ -7,6 +7,7 @@ const byId = id => document.getElementById(id);
 
 export const elements = {
     toast: byId('toast'),
+    muteButton: byId('mute-button'),
 
     // Screens
     lobbyArea: byId('lobby-area'),

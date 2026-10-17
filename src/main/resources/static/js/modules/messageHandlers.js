@@ -7,6 +7,14 @@ import { gameState } from './gameState.js';
 import { ui } from './uiController.js';
 import { animations } from './animations.js';
 import { gameActions } from './gameActions.js';
+import { sound } from './sound.js';
+import { effects } from './effects.js';
+import { elements } from './domElements.js';
+
+const STREAK_CALLOUTS = [3, 5, 10, 15];
+let streak = 0;
+let lastOpponentScore = 0;
+let lastTickSecond = null;
 
 // How long the ✓ / ✗ next to the answer stays before the next question replaces it
 const FEEDBACK_HOLD_MS = 350;
@@ -55,6 +63,8 @@ function handleGameState(message) {
     if (message.yourName) ui.setNames(message.yourName, message.opponentName);
     if (message.challengeType) ui.setChallenge(message.challengeType);
     if (message.gameStatus === 'RUNNING') {
+        streak = 0;
+        lastOpponentScore = 0;
         gameState.opponentGone = false;
         ui.resetGameBoard();
         gameState.setGameEndTime(Number(message.remainingSeconds));
@@ -62,11 +72,21 @@ function handleGameState(message) {
 }
 
 function handleCountdown(message) {
+    const first = elements.countdownState.hidden;
     ui.showCountdown(message.countdown);
+    if (first) {
+        // Replay the names' slide-in for every new match
+        elements.countdownState.classList.remove('is-intro');
+        void elements.countdownState.offsetWidth;
+        elements.countdownState.classList.add('is-intro');
+        sound.matchFound();
+    }
+    setTimeout(() => sound.countdown(message.countdown), first ? 220 : 0);
 }
 
 function handleQuestion(message) {
     const show = () => {
+        if (message.questionNumber === 1) sound.go();
         ui.showGame();
         ui.updateQuestion(message);
         gameState.setGameEndTime(Number(message.remainingSeconds));
@@ -90,7 +110,30 @@ function handleScoreUpdate(message) {
         ui.showAnswerFeedback(message.wasCorrect);
         animations.vibrate(message.wasCorrect ? 15 : [30, 40, 30]);
         showingFeedbackUntil = Date.now() + FEEDBACK_HOLD_MS;
+
+        const answerElement = gameState.questionFormat === 'NUMBER' ? elements.answerDisplay : gameState.chosenButton;
+        if (message.wasCorrect) {
+            streak++;
+            sound.correct();
+            effects.dust(answerElement);
+            if (STREAK_CALLOUTS.includes(streak)) {
+                sound.streak(streak);
+                // Below the answer line (or below the problem in button modes), never on top of the next problem
+                const anchor = gameState.questionFormat === 'NUMBER' ? elements.answerDisplay : elements.questionText;
+                effects.callout(anchor, `${streak} in a row`);
+            }
+        } else {
+            streak = 0;
+            sound.wrong();
+        }
+    } else if (message.opponentScore > lastOpponentScore) {
+        sound.opponentPoint();
+        const them = elements.opponentTally.closest('.hud-player');
+        them.classList.remove('is-scoring');
+        void them.offsetWidth;
+        them.classList.add('is-scoring');
     }
+    lastOpponentScore = message.opponentScore;
 }
 
 function handleGameOver(message) {
@@ -108,6 +151,14 @@ function handleGameOver(message) {
         ui.updateGameOver(message);
         if (gameState.opponentGone) ui.disableRematch(); // "Opponent left" may arrive before this runs
         ui.showResult();
+        if (message.draw) {
+            sound.draw();
+        } else if (message.youWon) {
+            sound.win();
+            requestAnimationFrame(() => effects.celebrate(elements.resultMessage));
+        } else {
+            sound.lose();
+        }
     }, wait);
 }
 
@@ -148,9 +199,15 @@ function handleError(message) {
 
 // Timer management
 function startTimer() {
+    lastTickSecond = null;
     gameState.startTimer(() => {
         const remaining = gameState.getRemainingTime();
         ui.updateTimer(remaining);
+        // Tick once per second during the last five seconds
+        if (remaining > 0 && remaining <= 5 && remaining !== lastTickSecond) {
+            lastTickSecond = remaining;
+            sound.tick();
+        }
 
         if (remaining === 0) {
             gameState.stopTimer();

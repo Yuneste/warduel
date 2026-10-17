@@ -178,6 +178,124 @@ a {
     text-underline-offset: 3px;
 }
 
+.mute-button {
+    position: absolute;
+    right: var(--space-2);
+    top: 0;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    background: none;
+    color: var(--chalk);
+    cursor: pointer;
+}
+
+.mute-button svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.mute-button .icon-sound-off,
+.mute-button[aria-pressed="true"] .icon-sound-on {
+    display: none;
+}
+
+.mute-button[aria-pressed="true"] .icon-sound-off {
+    display: block;
+}
+
+/* ---------- Effects: chalk dust, streak call-outs ---------- */
+
+.effects-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.dust {
+    position: absolute;
+    width: var(--size, 5px);
+    height: var(--size, 5px);
+    border-radius: 40% 60% 55% 45%;
+    opacity: 0.9;
+    animation: dust-fall 700ms ease-out forwards;
+}
+
+@keyframes dust-fall {
+    to {
+        transform: translate(var(--dx), var(--dy)) rotate(120deg);
+        opacity: 0;
+    }
+}
+
+.callout {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    color: var(--you);
+    font-size: 30px;
+    white-space: nowrap;
+    animation: callout 1100ms var(--ease-out) forwards;
+}
+
+@keyframes callout {
+    0% { opacity: 0; transform: translate(-50%, -10%) scale(0.8) rotate(-4deg); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.08) rotate(-2deg); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -70%) scale(1) rotate(-2deg); }
+}
+
+/* Countdown intro: the two names slide in from their sides */
+.countdown-state.is-intro #matchup-you {
+    display: inline-block;
+    animation: slide-from-left 450ms var(--ease-out);
+}
+
+.countdown-state.is-intro #matchup-them {
+    display: inline-block;
+    animation: slide-from-right 450ms var(--ease-out);
+}
+
+.countdown-state.is-intro .vs {
+    display: inline-block;
+    animation: chalk-in 500ms 200ms var(--ease-out) both;
+}
+
+@keyframes slide-from-left {
+    from { opacity: 0; transform: translateX(-60px); }
+}
+
+@keyframes slide-from-right {
+    from { opacity: 0; transform: translateX(60px); }
+}
+
+/* The opponent just scored */
+.hud-player.them.is-scoring .hud-name {
+    animation: name-pulse 450ms var(--ease-out);
+}
+
+@keyframes name-pulse {
+    40% { transform: scale(1.15); }
+}
+
+.hud-name {
+    display: inline-block;
+    max-width: 100%;
+    transform-origin: right center;
+}
+
+.hud-player:not(.them) .hud-name {
+    transform-origin: left center;
+}
+
 /* ---------- Messages ---------- */
 
 .toast {

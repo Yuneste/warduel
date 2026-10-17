@@ -19,7 +19,8 @@ Real-time multiplayer math duel: two players race to solve 20 problems in 60 sec
 - 60-second rounds with live score updates
 - Rematch system for consecutive games
 - Chalkboard design built phone-first: scores drawn as tally marks, on-screen number pad with haptic feedback
-- Full keyboard play on desktop (digits, Backspace, minus, Enter)
+- Full keyboard play on desktop (digits, Backspace, minus, Enter; arrows or T/F in button modes)
+- Sound synthesized live with the Web Audio API (no audio files), chalk-dust effects, streak call-outs; mute and reduced-motion respected
 
 ## Tech Stack
 
