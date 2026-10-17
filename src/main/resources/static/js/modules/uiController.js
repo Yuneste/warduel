@@ -7,7 +7,7 @@ import { elements } from './domElements.js';
 import { gameState } from './gameState.js';
 import { modeInfo } from './modes.js';
 
-const SCREENS = ['lobbyArea', 'waitingArea', 'gameArea', 'resultArea'];
+const SCREENS = ['lobbyArea', 'leaderboardArea', 'waitingArea', 'gameArea', 'resultArea'];
 const URGENT_SECONDS = 5;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -123,6 +123,45 @@ export const ui = {
     },
 
     // mode: 'queue' (public matchmaking) or 'room' (waiting for an invited friend)
+    showLeaderboard() {
+        this.showScreen('leaderboardArea');
+        elements.leaderboardStatus.textContent = 'Loading…';
+        elements.leaderboardList.replaceChildren();
+        elements.leaderboardYou.hidden = true;
+    },
+
+    renderLeaderboard(board) {
+        const you = board.you;
+        elements.leaderboardStatus.textContent = board.top.length ? '' : 'No winners yet. Win a game to be the first.';
+        elements.leaderboardList.replaceChildren(...board.top.map(entry => {
+            const li = document.createElement('li');
+            if (you && you.rank === entry.rank) li.classList.add('is-you');
+            const rank = document.createElement('span');
+            rank.className = 'rank';
+            rank.textContent = String(entry.rank);
+            const name = document.createElement('span');
+            name.className = 'player';
+            name.textContent = entry.name;
+            const wins = document.createElement('span');
+            wins.className = 'wins';
+            wins.textContent = String(entry.wins);
+            const label = document.createElement('small');
+            label.textContent = entry.wins === 1 ? 'win' : 'wins';
+            wins.append(label);
+            li.append(rank, name, wins);
+            return li;
+        }));
+        elements.leaderboardYou.hidden = false;
+        elements.leaderboardYou.textContent = you
+            ? `You: ${you.wins} ${you.wins === 1 ? 'win' : 'wins'} in ${you.games} ${you.games === 1 ? 'game' : 'games'}`
+              + (you.wins > 0 ? `, rank ${you.rank}` : '')
+            : 'Play a game against a random opponent to get on the board.';
+    },
+
+    showLeaderboardError() {
+        elements.leaderboardStatus.textContent = "Couldn't load the leaderboard. Try again in a moment.";
+    },
+
     showWaiting(mode = 'queue') {
         this.showScreen('waitingArea');
         elements.queueState.hidden = mode !== 'queue';

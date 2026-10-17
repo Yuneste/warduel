@@ -12,7 +12,7 @@ import java.util.Set;
 
 @Getter
 @Setter
-@ToString(exclude = "session")
+@ToString(exclude = {"session", "leaderboardToken"})
 public class Player {
 
     private String playerId;
@@ -26,6 +26,9 @@ public class Player {
     // Post-game stats: every answer of the current round and when the current question appeared
     private final List<AnswerRecord> answerLog = new CopyOnWriteArrayList<>();
     private volatile long questionShownAtMillis;
+
+    // Random device token for the leaderboard (only its hash is ever stored); null = anonymous
+    private volatile String leaderboardToken;
 
     public Player(String playerId, WebSocketSession session, String displayName) {
         this.playerId = playerId;

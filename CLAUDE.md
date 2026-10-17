@@ -56,7 +56,8 @@ When you change game behavior, add or adjust a scenario there. When changing por
 - **`dto/`** holds the WebSocket protocol. `BaseMessage` uses Jackson polymorphism on the `type` field (`@JsonSubTypes`). To add a message type: create the DTO, register it in `BaseMessage`, add a `case` in `GameWebSocketHandler.handleTextMessage` (client→server), and/or add a handler in `messageHandlers.js` (server→client). The server sends `GAME_STATE` (RUNNING) when a round starts, which the client needs for Forfeit. `JoinGameMessage` isn't used yet; it's kept for nicknames.
 - **`config/GameConfiguration`** binds the `game.*` properties.
 - **Answers are always ints** (`Question.AnswerFormat`): the number for NUMBER, 1/0 for TRUE_FALSE, and the option index for CHOICE. `QUESTION` carries `format` and `options`, and `Question.formatAnswer` turns an answer into words for the stats. The chalk font only has ² and ³, so powers stay squares and cubes.
-- **`SecurityConfig`** permits all requests on purpose (anonymous play). The default user auto-configuration is excluded in `WarDuelApplication`. JPA + H2 (local) / Postgres (production) are kept for the planned leaderboard.
+- **`leaderboard/`**: `PlayerProfile` (JPA) holds wins, losses and draws by the SHA-256 hash of a random device token that the browser generates (`mathwars.token` in localStorage) and sends in `JOIN_GAME`. The raw token is never stored or logged; `Player` and `JoinGameMessage` exclude it from `toString`. Only public games count, and a forfeit or disconnect counts only after 10s of play. Results are recorded on the handler's scheduler, off the game thread. `GET /api/leaderboard` (token in the `X-Player-Token` header) returns the top 10 plus the caller's own line.
+- **`SecurityConfig`** permits all requests on purpose (anonymous play). The default user auto-configuration is excluded in `WarDuelApplication`. JPA uses in-memory H2 locally (the leaderboard resets on restart) and Postgres in production.
 - **`HomeController`** serves the Thymeleaf templates `index` (the SPA), `impressum` and `datenschutz`. It passes `questionsPerGame`, `durationSeconds` and `winScore` to the page, which shows them and exposes them as `<body data-*>` for the JS. Never hardcode those numbers in the frontend.
 
 ### Frontend (`src/main/resources/`)
@@ -76,10 +77,9 @@ When you change game behavior, add or adjust a scenario there. When changing por
 
 ## Roadmap
 
-Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs), 3 (tests, CI, JDK 25 support) and 4 (chalkboard redesign) are done. From Phase 5, 5a (nicknames, invite links, stats) and 5b (challenge types) are done.
+Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs), 3 (tests, CI, JDK 25 support) and 4 (chalkboard redesign) are done. From Phase 5, 5a (nicknames, invite links, stats), 5b (challenge types) and 5c (leaderboard) are done. If you change what is stored or sent, update `templates/datenschutz.html` (German privacy policy) to match.
 
 5. **Features and game feel:**
-   - a leaderboard ranked by total wins; identity is a nickname plus a secret device token, and only public matchmaking games count
    - game feel in the chalkboard style: a match intro, streaks and combos, chalk-dust effects on correct answers, a celebration on wins
    - Web Audio sound effects (chalk scratches, taps, countdown, win/lose) with a mute button
 6. **Hosting:** a free Render web service (`Dockerfile` + `render.yaml`) with Postgres on Neon. No custom domain is needed.

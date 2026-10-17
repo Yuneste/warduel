@@ -224,6 +224,90 @@ class GameWebSocketIntegrationTest {
         return new TestPlayer[] {host, friend};
     }
 
+    // ---------- Leaderboard ----------
+
+    private final java.net.http.HttpClient http = java.net.http.HttpClient.newHttpClient();
+    private final com.fasterxml.jackson.databind.ObjectMapper json = new com.fasterxml.jackson.databind.ObjectMapper();
+
+    private JsonNode leaderboard(String token) throws Exception {
+        var request = java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://localhost:" + port + "/api/leaderboard"));
+        if(token != null) {
+            request.header("X-Player-Token", token);
+        }
+        return json.readTree(http.send(request.build(), java.net.http.HttpResponse.BodyHandlers.ofString()).body());
+    }
+
+    /** Results are recorded in the background; wait briefly for them */
+    private JsonNode waitForYou(String token, int games) throws Exception {
+        for(int i = 0; i < 40; i++) {
+            JsonNode you = leaderboard(token).get("you");
+            if(you != null && !you.isNull() && you.get("games").asInt() >= games) {
+                return you;
+            }
+            Thread.sleep(50);
+        }
+        return leaderboard(token).get("you");
+    }
+
+    @Test
+    void publicWinsAndLossesReachTheLeaderboard() throws Exception {
+        String winnerToken = java.util.UUID.randomUUID().toString();
+        String loserToken = java.util.UUID.randomUUID().toString();
+        TestPlayer a = connectOnly();
+        a.send(Map.of("type", "JOIN_GAME", "playerName", "Champ", "playerToken", winnerToken));
+        Thread.sleep(150);
+        TestPlayer b = connectOnly();
+        b.send(Map.of("type", "JOIN_GAME", "playerName", "Rival", "playerToken", loserToken));
+
+        for(int i = 1; i <= 3; i++) { // win score is 3 in this test
+            int number = i;
+            a.next("QUESTION", m -> m.get("questionNumber").asInt() == number, Duration.ofSeconds(6));
+            a.answerCurrentCorrectly();
+        }
+        a.next("GAME_OVER");
+
+        JsonNode champ = waitForYou(winnerToken, 1);
+        assertThat(champ.get("name").asText()).isEqualTo("Champ");
+        assertThat(champ.get("wins").asInt()).isEqualTo(1);
+        assertThat(champ.get("rank").asInt()).isPositive();
+        JsonNode rival = waitForYou(loserToken, 1);
+        assertThat(rival.get("losses").asInt()).isEqualTo(1);
+        assertThat(leaderboard(null).get("top")).anySatisfy(e -> assertThat(e.get("name").asText()).isEqualTo("Champ"));
+        assertThat(leaderboard(null).get("you").isNull()).isTrue();
+    }
+
+    @Test
+    void privateGamesAndInstantForfeitsDontCount() throws Exception {
+        String hostToken = java.util.UUID.randomUUID().toString();
+        TestPlayer host = connectOnly();
+        host.send(Map.of("type", "JOIN_GAME", "createRoom", true, "challengeType", "CLASSIC", "playerToken", hostToken));
+        String code = host.next("ROOM_CREATED").get("roomCode").asText();
+        TestPlayer friend = connectOnly();
+        friend.send(Map.of("type", "JOIN_GAME", "roomCode", code));
+        for(int i = 1; i <= 3; i++) {
+            int number = i;
+            host.next("QUESTION", m -> m.get("questionNumber").asInt() == number, Duration.ofSeconds(6));
+            host.answerCurrentCorrectly();
+        }
+        host.next("GAME_OVER");
+
+        String quitterToken = java.util.UUID.randomUUID().toString();
+        String stayerToken = java.util.UUID.randomUUID().toString();
+        TestPlayer stayer = connectOnly();
+        stayer.send(Map.of("type", "JOIN_GAME", "playerToken", stayerToken));
+        Thread.sleep(150);
+        TestPlayer quitter = connectOnly();
+        quitter.send(Map.of("type", "JOIN_GAME", "playerToken", quitterToken));
+        quitter.next("QUESTION", m -> true, Duration.ofSeconds(6));
+        quitter.send(Map.of("type", "FORFEIT"));
+        stayer.next("GAME_OVER");
+
+        Thread.sleep(500);
+        assertThat(leaderboard(hostToken).get("you").isNull()).as("private game").isTrue();
+        assertThat(leaderboard(stayerToken).get("you").isNull()).as("forfeit in the first seconds").isTrue();
+        assertThat(leaderboard(quitterToken).get("you").isNull()).isTrue();
+    }
+
     // ---------- Challenge types ----------
 
     @Test

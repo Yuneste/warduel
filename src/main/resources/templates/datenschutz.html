@@ -12,7 +12,7 @@
     <div class="legal-page">
         <h1>Datenschutz&shy;erklärung</h1>
 
-        <p><strong>Stand: Dezember 2025</strong></p>
+        <p><strong>Stand: Oktober 2026</strong></p>
 
         <h2>1. Datenschutz auf einen Blick</h2>
 
@@ -144,7 +144,8 @@
         <ul>
             <li><strong>WebSocket-Session-ID:</strong> Eine temporäre, zufällig generierte Kennung zur Identifikation Ihrer Spielsitzung</li>
             <li><strong>IP-Adresse:</strong> Wird automatisch durch die WebSocket-Verbindung übertragen</li>
-            <li><strong>Spielstand-Daten:</strong> Punktzahl, beantwortete Fragen (nur während des Spiels)</li>
+            <li><strong>Spielstand-Daten:</strong> Punktzahl, beantwortete Fragen und Antwortzeiten (nur während des Spiels)</li>
+            <li><strong>Spitzname:</strong> Der von Ihnen frei gewählte Name, der Ihrem Gegner angezeigt wird (optional)</li>
             <li><strong>Zeitstempel:</strong> Zeitpunkt der Verbindung und letzten Aktivität</li>
         </ul>
         <p><strong>Zweck der Verarbeitung:</strong></p>
@@ -161,13 +162,51 @@
         </p>
         <p><strong>Speicherdauer:</strong></p>
         <p>
-            Alle Daten werden <strong>ausschließlich im Arbeitsspeicher</strong> (RAM) gespeichert und
-            <strong>automatisch beim Schließen der WebSocket-Verbindung gelöscht</strong>. Es erfolgt
-            keine dauerhafte Speicherung auf Festplatten oder in Datenbanken.
+            Diese Spieldaten werden <strong>ausschließlich im Arbeitsspeicher</strong> (RAM) gespeichert und
+            <strong>automatisch beim Schließen der WebSocket-Verbindung gelöscht</strong>. Dauerhaft gespeichert
+            werden nur die Ergebnisse für die Bestenliste (siehe nächster Abschnitt).
         </p>
         <p>
             Nach Beendigung der Spielsitzung (Schließen des Browsers, Klick auf "Neues Spiel" oder
             Verbindungsabbruch) werden alle Ihre Daten <strong>unwiderruflich gelöscht</strong>.
+        </p>
+
+        <h3>Spitzname und Bestenliste</h3>
+        <p>
+            Spiele gegen zufällige Gegner fließen in eine öffentliche Bestenliste ein. Damit Ihre Siege Ihrem
+            Gerät zugeordnet werden können, erzeugt Ihr Browser beim ersten Spiel eine zufällige Kennung
+            (ohne Bezug zu Ihrer Person) und übermittelt sie beim Spielbeginn.
+        </p>
+        <p><strong>Welche Daten werden gespeichert?</strong></p>
+        <ul>
+            <li>Ein kryptografischer Hashwert (SHA-256) der zufälligen Kennung; die Kennung selbst wird nicht gespeichert</li>
+            <li>Ihr zuletzt verwendeter Spitzname</li>
+            <li>Anzahl Ihrer Siege, Niederlagen und Unentschieden</li>
+            <li>Zeitpunkt des ersten und des letzten gewerteten Spiels</li>
+        </ul>
+        <p>
+            Öffentlich angezeigt werden nur Spitzname, Platzierung und Anzahl der Siege der besten Spieler.
+            Spiele über private Einladungslinks werden nicht gewertet.
+        </p>
+        <p><strong>Rechtsgrundlage:</strong></p>
+        <p>
+            Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse ist der Betrieb einer Bestenliste als Teil
+            des Spiels. Sie können die Wertung vermeiden, indem Sie nur über private Einladungslinks spielen
+            oder die Website-Daten in Ihrem Browser löschen.
+        </p>
+        <p><strong>Speicherdauer und Löschung:</strong></p>
+        <p>
+            Die Einträge werden gespeichert, solange die Bestenliste besteht. Auf Anfrage an die oben genannte
+            E-Mail-Adresse löschen wir Ihren Eintrag; geben Sie dazu Ihren Spitznamen an.
+        </p>
+
+        <h3>Lokale Speicherung im Browser</h3>
+        <p>
+            Die Website speichert im lokalen Speicher Ihres Browsers (Local Storage) die zufällige Kennung für
+            die Bestenliste, Ihren zuletzt verwendeten Spitznamen und Ihre Toneinstellung. Diese Angaben
+            verlassen Ihr Gerät nur wie oben beschrieben und dienen ausschließlich dazu, die von Ihnen
+            gewünschten Spielfunktionen bereitzustellen (§ 25 Abs. 2 Nr. 2 TDDDG). Sie können sie jederzeit
+            über die Einstellungen Ihres Browsers löschen.
         </p>
 
         <h3>Server-Log-Files</h3>
@@ -190,8 +229,8 @@
 
         <h3>Cookies</h3>
         <p>
-            Diese Website verwendet <strong>derzeit keine Cookies</strong>. Die Spielfunktionalität basiert
-            ausschließlich auf WebSocket-Verbindungen ohne Cookie-Speicherung.
+            Diese Website verwendet <strong>keine Cookies</strong> und keine Analyse- oder Tracking-Dienste.
+            Schriftarten werden vom eigenen Server geladen; es werden keine Daten an Dritte wie Google übertragen.
         </p>
         <p>
             Sollten in Zukunft Cookies (z.B. für Analysezwecke) eingesetzt werden, werden Sie vorab um Ihre

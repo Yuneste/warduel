@@ -11,12 +11,24 @@ import { storage } from './storage.js';
 
 const FORFEIT_CONFIRM_MS = 3000;
 const NAME_KEY = 'mathwars.name';
+const TOKEN_KEY = 'mathwars.token';
+
+// Random ID that lets the leaderboard recognise this device; the server stores only its hash
+function deviceToken() {
+    let token = storage.get(TOKEN_KEY);
+    if (!token) {
+        token = crypto.randomUUID ? crypto.randomUUID()
+            : [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
+        storage.set(TOKEN_KEY, token);
+    }
+    return token;
+}
 let forfeitTimeout = null;
 
 function connectWith(joinRequest) {
     gameState.playerName = elements.playerName.value.trim();
     storage.set(NAME_KEY, gameState.playerName);
-    gameState.joinRequest = joinRequest;
+    gameState.joinRequest = { ...joinRequest, playerToken: deviceToken() };
     ui.hideToast();
     websocket.connect();
 }
@@ -87,6 +99,24 @@ export const gameActions = {
         } catch {
             // share sheet dismissed
         }
+    },
+
+    async openLeaderboard() {
+        ui.showLeaderboard();
+        try {
+            const token = storage.get(TOKEN_KEY);
+            const response = await fetch('/api/leaderboard', { headers: token ? { 'X-Player-Token': token } : {} });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            ui.renderLeaderboard(await response.json());
+        } catch (error) {
+            console.error('Leaderboard:', error);
+            ui.showLeaderboardError();
+        }
+    },
+
+    closeLeaderboard() {
+        ui.showLobby();
+        elements.leaderboardButton.focus();
     },
 
     // Leave the queue (or an unanswered invite) before a match is found

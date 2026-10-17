@@ -56,8 +56,19 @@
                 <button id="create-room-button" class="btn btn-primary" type="button">Create invite link</button>
                 <button id="friend-back-button" class="link-button" type="button">Back</button>
             </fieldset>
+            <button id="leaderboard-button" class="link-button" type="button">Leaderboard</button>
             <p class="hint keyboard-only">On a keyboard? Type your answers and press Enter.</p>
         </div>
+    </section>
+
+    <!-- Leaderboard -->
+    <section id="leaderboard-area" class="screen leaderboard" aria-labelledby="leaderboard-title" hidden>
+        <h2 id="leaderboard-title" class="chalk leaderboard-title">Leaderboard</h2>
+        <p class="muted">Most wins in games against random opponents.</p>
+        <p id="leaderboard-status" class="muted leaderboard-status" role="status"></p>
+        <ol id="leaderboard-list" class="leaderboard-list"></ol>
+        <p id="leaderboard-you" class="leaderboard-you"></p>
+        <button id="leaderboard-back-button" class="btn btn-secondary" type="button">Back</button>
     </section>
 
     <!-- Queue and countdown -->

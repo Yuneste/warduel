@@ -3,7 +3,6 @@ package com.warduel.warduel.dto;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
 /**
  * JoinGameMessage - Wird vom Client nach dem Verbinden gesendet, um einem Spiel beizutreten
@@ -14,7 +13,6 @@ import lombok.ToString;
  */
 @Getter
 @Setter
-@ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
 public class JoinGameMessage extends BaseMessage {
 
@@ -22,6 +20,14 @@ public class JoinGameMessage extends BaseMessage {
     private boolean createRoom;
     private String roomCode;
     private String challengeType; // private games only: CLASSIC, TRUE_FALSE, MISSING_NUMBER, COMPARE; empty = random
+    private String playerToken;   // random device token for the leaderboard (public games only)
+
+    @Override
+    public String toString() {
+        // never log the token
+        return "JoinGameMessage(playerName=" + playerName + ", createRoom=" + createRoom + ", roomCode=" + roomCode
+                + ", challengeType=" + challengeType + ")";
+    }
 
     public JoinGameMessage() {
         super();

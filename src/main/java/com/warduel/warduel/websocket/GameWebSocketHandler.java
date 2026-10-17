@@ -3,6 +3,8 @@ package com.warduel.warduel.websocket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.warduel.warduel.config.GameConfiguration;
+import com.warduel.warduel.leaderboard.LeaderboardService;
+import com.warduel.warduel.leaderboard.LeaderboardService.Outcome;
 import com.warduel.warduel.dto.*;
 import com.warduel.warduel.model.*;
 import com.warduel.warduel.service.GameService;
@@ -34,6 +36,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final GameService gameService;
     private final GameConfiguration gameConfig;
     private final ObjectMapper objectMapper;
+    private final LeaderboardService leaderboard;
+
+    // A forfeit or disconnect only counts for the leaderboard once the game ran this long
+    // (stops farming wins with two of your own browser tabs and an instant forfeit)
+    private static final long MIN_SECONDS_FOR_EARLY_END_TO_COUNT = 10;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
 
     // SECURITY: Rate limiting - max messages per second per player
@@ -83,7 +90,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    public GameWebSocketHandler(GameService gameService, GameConfiguration gameConfig, ObjectMapper objectMapper) {
+    public GameWebSocketHandler(GameService gameService, GameConfiguration gameConfig, ObjectMapper objectMapper,
+                                LeaderboardService leaderboard) {
+        this.leaderboard = leaderboard;
         this.gameService = gameService;
         this.gameConfig = gameConfig;
         this.objectMapper = objectMapper;
@@ -211,10 +220,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        log.debug("Received message from {}: {}", playerId, payload);
-
         try {
             BaseMessage baseMsg = objectMapper.readValue(payload, BaseMessage.class);
+            // Type only: JOIN_GAME carries the player's leaderboard token
+            log.debug("Received {} from {}", baseMsg.getType(), playerId);
 
             switch(baseMsg.getType()) {
                 case "JOIN_GAME":
@@ -266,6 +275,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             }
         } else {
             game = gameService.joinGame(safeSession, join.getPlayerName());
+        }
+
+        Player me = findPlayerById(game, playerId);
+        if(me != null) {
+            me.setLeaderboardToken(join.getPlayerToken());
         }
 
         // Wenn Spiel voll ist, starte es
@@ -433,6 +447,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String name = forfeitingPlayer != null ? forfeitingPlayer.getDisplayName() : "Opponent";
 
         sendWinByDefault(opponent, forfeitingPlayer, name + " forfeited");
+        recordEarlyEnd(game, opponent, forfeitingPlayer);
         log.info("FORFEIT_COMPLETED game={}", game.getGameId());
     }
 
@@ -501,6 +516,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 // Opponent wins by default
                 if(game.endGame()) {
                     log.info("Game {} ended because player {} disconnected", game.getGameId(), playerId);
+                    recordEarlyEnd(game, opponent, disconnectedPlayer);
                     if(opponentConnected) {
                         sendWinByDefault(opponent, null, name + " disconnected");
                         // A rematch is impossible now; lets the client disable its button
@@ -520,6 +536,42 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 }
             }
         }
+    }
+
+    // ---------- Leaderboard ----------
+
+    private static Outcome outcome(int score, int opponentScore) {
+        return score > opponentScore ? Outcome.WIN : score < opponentScore ? Outcome.LOSS : Outcome.DRAW;
+    }
+
+    /** Forfeit or disconnect: counts like a normal result once the game has run a little */
+    private void recordEarlyEnd(GameSession game, @Nullable Player winner, @Nullable Player loser) {
+        if(game.getStartTime() == null || java.time.Duration.between(game.getStartTime(), java.time.LocalDateTime.now())
+                .getSeconds() < MIN_SECONDS_FOR_EARLY_END_TO_COUNT) {
+            return;
+        }
+        if(winner != null) {
+            recordResult(game, winner, Outcome.WIN);
+        }
+        if(loser != null) {
+            recordResult(game, loser, Outcome.LOSS);
+        }
+    }
+
+    /** Only public games count; recorded off the game thread so a slow database never delays play */
+    private void recordResult(GameSession game, Player player, Outcome outcome) {
+        String token = player.getLeaderboardToken();
+        if(game.isPrivate() || token == null) {
+            return;
+        }
+        String name = player.getDisplayName();
+        scheduler.execute(() -> {
+            try {
+                leaderboard.record(token, name, outcome);
+            } catch(Exception e) {
+                log.error("Could not record {} for {} on the leaderboard", outcome, name, e);
+            }
+        });
     }
 
     private static GameStateMessage gameState(GameSession.GameStatus status, Player you, Player opponent,
@@ -741,6 +793,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         if(player2 != null) {
             sendGameOver(player2, player1, winnerName, isDraw);
+        }
+
+        if(player1 != null && player2 != null) {
+            recordResult(game, player1, outcome(score1, score2));
+            recordResult(game, player2, outcome(score2, score1));
         }
     }
 

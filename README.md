@@ -14,6 +14,7 @@ Real-time multiplayer math duel: two players race to solve 20 problems in 60 sec
 
 - Real-time 1v1 matches via WebSocket: random opponent, or a friend through a private invite link
 - Nicknames, and post-game stats with every answer and how long it took
+- Leaderboard of public games (no accounts: a random device ID, stored only as a SHA-256 hash)
 - Four challenge types: Classic, True or false, Missing number and Which is bigger (fractions, powers, roots); problems get harder through the game and never repeat
 - 60-second rounds with live score updates
 - Rematch system for consecutive games
@@ -27,6 +28,7 @@ Real-time multiplayer math duel: two players race to solve 20 problems in 60 sec
 - WebSocket (TextWebSocketHandler)
 - Concurrent game management with thread safety
 - Rate limiting and connection monitoring
+- Spring Data JPA (H2 locally, PostgreSQL in production) for the leaderboard
 
 **Frontend:**
 - Vanilla JavaScript ES6 modules
