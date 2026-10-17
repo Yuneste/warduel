@@ -29,3 +29,70 @@ jobs:
         with:
           name: surefire-reports-java-${{ matrix.java }}
           path: target/surefire-reports/
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the Docker image (the one Render deploys)
+        run: docker build -t mathwars .
+
+      - name: Start it and check the page and the API
+        run: |
+          docker run -d --name mathwars -p 8080:8080 -e PORT=8080 mathwars
+          for i in $(seq 1 60); do curl -sf http://localhost:8080/ > /dev/null && break; sleep 2; done
+          curl -sf http://localhost:8080/ | grep -q "<title>MathWars</title>"
+          curl -sf http://localhost:8080/api/leaderboard | grep -q '"top"'
+
+      - name: Container logs
+        if: always()
+        run: docker logs mathwars
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mathwars
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: mathwars
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://mathwars:secret@localhost:5432/mathwars
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Package
+        run: ./mvnw -B -q -DskipTests package
+
+      - name: Leaderboard results survive a restart (they live in Postgres, not in memory)
+        run: |
+          TOKEN=$(node -e "console.log(crypto.randomUUID())")
+          start() {
+            java -jar target/warduel-*.jar --game.win-score=1 > app.log 2>&1 &
+            echo $! > app.pid
+            for i in $(seq 1 60); do curl -sf http://localhost:8080/ > /dev/null && return; sleep 1; done
+            cat app.log; exit 1
+          }
+          start
+          grep -qi "postgresql" app.log || { echo "Not connected to Postgres"; cat app.log; exit 1; }
+          node .github/scripts/play-public-game.mjs 8080 "$TOKEN"
+          sleep 2
+          kill "$(cat app.pid)"; sleep 3
+          start
+          curl -sf -H "X-Player-Token: $TOKEN" http://localhost:8080/api/leaderboard | tee board.json
+          grep -q '"name":"CI winner"' board.json
+          grep -q '"wins":1' board.json

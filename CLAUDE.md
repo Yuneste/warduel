@@ -39,7 +39,7 @@ Tests:
 - `ChallengeQuestionsTest`, which checks every challenge type against `support/Solver`. That's an independent answer key sharing no code with the generator, and scripted `TestPlayer`s use it too, so they can answer any type.
 - `GameWebSocketIntegrationTest`, which starts the server on a random port with 5-second rounds and win score 3, and plays real matches through `TestPlayer` clients
 
-When you change game behavior, add or adjust a scenario there. When changing ports, also set `app.allowed-origins`, or the WebSocket handshake is rejected with 403. There's no JS build step or linter: edit files under `src/main/resources/static/` and reload.
+When you change game behavior, add or adjust a scenario there. When changing ports, also set `app.allowed-origins`, or the WebSocket handshake is rejected with 403. In production the origin comes from `RENDER_EXTERNAL_URL`. Set `DATABASE_URL=postgresql://…` to use Postgres (see `config/DatabaseUrlEnvironmentPostProcessor`); without it the app uses in-memory H2. There's no JS build step or linter: edit files under `src/main/resources/static/` and reload.
 
 ## Architecture
 
@@ -83,7 +83,7 @@ When you change game behavior, add or adjust a scenario there. When changing por
 
 Work happens on branch `refresh`, one commit per phase. Phases 1 (cleanup), 2 (backend bugs), 3 (tests, CI, JDK 25 support) and 4 (chalkboard redesign) are done. Phase 5 is done: 5a (nicknames, invite links, stats), 5b (challenge types), 5c (leaderboard) and 5d (sound and game feel). If you change what is stored or sent, update `templates/datenschutz.html` (German privacy policy) to match.
 
-6. **Hosting:** a free Render web service (`Dockerfile` + `render.yaml`) with Postgres on Neon. No custom domain is needed.
+6. **Hosting:** `Dockerfile` and `render.yaml` (Render free plan, Frankfurt) are ready, with Postgres on Neon through `DATABASE_URL`. CI builds the image and runs the app against Postgres. What's left is the account setup in Render and Neon, which only the owner can do (see the README's Deploy section).
 
 ## Conventions
 
