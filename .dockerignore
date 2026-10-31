@@ -1,8 +1,0 @@
-target/
-.git/
-.github/
-.idea/
-.claude/
-docs/
-*.log
-*.iml

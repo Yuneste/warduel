@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "regions": ["fra1"],
+  "functions": {
+    "api/game.js": { "maxDuration": 1800 },
+    "api/leaderboard.js": { "maxDuration": 10 }
+  }
+}

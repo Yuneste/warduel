@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#263d33">
+    <meta name="description" content="MathWars: a real-time 1v1 math duel. 20 problems, 60 seconds, one opponent.">
+    <title>MathWars</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preload" href="/fonts/cabin-sketch-700.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-questions="{{questionsPerGame}}" data-duration="{{durationSeconds}}" data-win-score="{{winScore}}">
+
+<a href="#main-content" class="skip-link">Skip to the game</a>
+
+<main class="board" id="main-content">
+
+    <!-- Messages from the game (opponent left, connection lost, ...) -->
+    <p id="toast" class="toast" role="alert" hidden></p>
+
+    <!-- Someone opened your invite link -->
+    <div id="challenge-popup" class="challenge-popup" role="alertdialog" aria-modal="false"
+         aria-labelledby="challenge-popup-title" aria-describedby="challenge-popup-text" hidden>
+        <p id="challenge-popup-title" class="challenge-popup-title"><span id="challenge-from">A friend</span> challenges you!</p>
+        <p id="challenge-popup-text" class="challenge-popup-text">Accept within <span id="challenge-popup-seconds">10</span> seconds</p>
+        <div class="challenge-bar" aria-hidden="true"><span id="challenge-popup-fill"></span></div>
+        <div class="challenge-actions">
+            <button id="accept-challenge-button" class="btn challenge-accept" type="button">Accept</button>
+            <button id="decline-challenge-button" class="btn challenge-decline" type="button">Decline</button>
+        </div>
+    </div>
+
+    <!-- Chalk dust and streak call-outs are drawn here -->
+    <div id="effects-layer" class="effects-layer" aria-hidden="true"></div>
+
+    <!-- Lobby -->
+    <section id="lobby-area" class="screen lobby" aria-labelledby="lobby-title">
+        <div class="lobby-intro">
+            <h1 id="lobby-title" class="chalk title">Math<br>Wars</h1>
+            <p class="chalk tagline">you + 1 stranger = {{durationSeconds}} seconds</p>
+        </div>
+        <ul class="rules">
+            <li><span class="chalk rule-number">{{questionsPerGame}}</span>
+                <span>problems each, different for both of you</span></li>
+            <li><span class="chalk rule-number">{{durationSeconds}}</span>
+                <span>seconds on the clock</span></li>
+            <li><span class="chalk rule-number">1st</span>
+                <span>to {{winScore}} correct wins on the spot</span></li>
+        </ul>
+        <div class="lobby-actions">
+            <p id="invite-banner" class="invite-banner" hidden>You've been invited to a private game.</p>
+            <label class="name-field">
+                <span class="name-label">Your name on the board</span>
+                <input id="player-name" class="chalk name-input" type="text" maxlength="16"
+                       autocomplete="nickname" spellcheck="false" placeholder="Player">
+            </label>
+            <button id="play-button" class="btn btn-primary" type="button">Find an opponent</button>
+            <button id="join-invite-button" class="btn btn-primary" type="button" hidden>Join the game</button>
+            <button id="friend-button" class="link-button" type="button">Play a friend instead</button>
+            <fieldset id="friend-options" class="friend-options" hidden>
+                <legend class="name-label">Pick the problems for your friend and you</legend>
+                <div class="mode-chips">
+                    <label class="mode-chip"><input type="radio" name="mode" value="" checked><span>Mixed</span></label>
+                    <label class="mode-chip"><input type="radio" name="mode" value="CLASSIC"><span>Classic</span></label>
+                    <label class="mode-chip"><input type="radio" name="mode" value="TRUE_FALSE"><span>True or false</span></label>
+                    <label class="mode-chip"><input type="radio" name="mode" value="MISSING_NUMBER"><span>Missing number</span></label>
+                    <label class="mode-chip"><input type="radio" name="mode" value="COMPARE"><span>Which is bigger?</span></label>
+                </div>
+                <button id="create-room-button" class="btn btn-primary" type="button">Create invite link</button>
+                <div class="join-code">
+                    <label class="name-label" for="join-code-input">Got a link or code from a friend?</label>
+                    <div class="join-code-row">
+                        <input id="join-code-input" class="share-link join-code-input" type="text"
+                               placeholder="Link or code" autocomplete="off"
+                               autocapitalize="characters" spellcheck="false">
+                        <button id="join-code-button" class="btn btn-secondary join-code-button" type="button">Join</button>
+                    </div>
+                    <p id="join-code-error" class="join-code-error" role="alert" hidden></p>
+                </div>
+                <button id="friend-back-button" class="link-button" type="button">Back</button>
+            </fieldset>
+            <button id="leaderboard-button" class="link-button" type="button">Leaderboard</button>
+            <p class="hint keyboard-only">On a keyboard? Type your answers and press Enter.</p>
+        </div>
+    </section>
+
+    <!-- Leaderboard -->
+    <section id="leaderboard-area" class="screen leaderboard" aria-labelledby="leaderboard-title" hidden>
+        <h2 id="leaderboard-title" class="chalk leaderboard-title">Leaderboard</h2>
+        <p class="muted">Most wins in games against random opponents.</p>
+        <p id="leaderboard-status" class="muted leaderboard-status" role="status"></p>
+        <ol id="leaderboard-list" class="leaderboard-list"></ol>
+        <p id="leaderboard-you" class="leaderboard-you"></p>
+        <button id="leaderboard-back-button" class="btn btn-secondary" type="button">Back</button>
+    </section>
+
+    <!-- Queue and countdown -->
+    <section id="waiting-area" class="screen waiting" aria-live="polite" hidden>
+        <div id="queue-state" class="queue-state">
+            <h2 class="chalk waiting-title">Looking for an opponent<span class="dots" aria-hidden="true"></span></h2>
+            <p class="muted">The game starts as soon as someone else presses play.</p>
+            <button id="leave-waiting-button" class="btn btn-secondary" type="button">Cancel</button>
+        </div>
+        <div id="room-state" class="room-state" hidden>
+            <h2 class="chalk waiting-title">Invite a friend</h2>
+            <p class="muted">Send them this link. When they open it, you get a challenge to accept.</p>
+            <div class="share-box">
+                <input id="room-link" class="share-link" type="text" readonly aria-label="Invite link">
+                <button id="copy-link-button" class="btn btn-primary share-button" type="button">Copy link</button>
+            </div>
+            <button id="share-link-button" class="btn btn-secondary" type="button" hidden>Share…</button>
+            <p class="muted room-code-line">Room code <span id="room-code" class="chalk room-code"></span></p>
+            <button id="leave-room-button" class="btn btn-secondary" type="button">Cancel</button>
+        </div>
+        <div id="challenge-state" class="challenge-state" hidden>
+            <h2 id="challenge-state-title" class="chalk waiting-title">Sending your challenge<span class="dots" aria-hidden="true"></span></h2>
+            <p id="challenge-state-text" class="muted" aria-live="polite"></p>
+            <div class="challenge-bar" aria-hidden="true"><span id="challenge-state-fill"></span></div>
+            <button id="cancel-challenge-button" class="btn btn-secondary" type="button">Cancel</button>
+        </div>
+        <div id="countdown-state" class="countdown-state" hidden>
+            <p class="matchup"><span id="matchup-you" class="you-color">You</span> <span class="chalk vs">vs</span> <span id="matchup-them" class="them-color">Opponent</span></p>
+            <p id="countdown-mode" class="chalk countdown-mode"></p>
+            <p id="countdown-number" class="chalk countdown-number" aria-live="assertive">3</p>
+            <p id="countdown-tip" class="muted countdown-tip"></p>
+        </div>
+    </section>
+
+    <!-- Game -->
+    <section id="game-area" class="screen game" hidden>
+        <header class="hud">
+            <div class="hud-player">
+                <span id="hud-you-name" class="hud-label hud-name">You</span>
+                <div id="your-tally" class="tally you" role="img" aria-label="Your score: 0"></div>
+            </div>
+            <div class="hud-clock">
+                <span id="timer" class="chalk clock" aria-label="Seconds left">60</span>
+                <span class="hud-label">sec</span>
+            </div>
+            <div class="hud-player them">
+                <span id="hud-them-name" class="hud-label hud-name">Opponent</span>
+                <div id="opponent-tally" class="tally them" role="img" aria-label="Opponent score: 0"></div>
+            </div>
+        </header>
+
+        <div class="question-area">
+            <p id="question-number" class="muted question-number">Question 1 of 20</p>
+            <p id="question-prompt" class="question-prompt" hidden></p>
+            <p id="question-text" class="chalk question-text" aria-live="polite">&nbsp;</p>
+            <div id="answer-display" class="chalk answer" aria-live="polite" aria-label="Your answer"></div>
+            <p id="feedback-area" class="feedback" role="status"></p>
+        </div>
+
+        <div class="pad-area">
+            <div id="choice-pad" class="choice-pad" role="group" aria-label="Answer" hidden>
+                <button id="choice-left" class="choice chalk" type="button" data-side="left"></button>
+                <button id="choice-right" class="choice chalk" type="button" data-side="right"></button>
+            </div>
+            <div id="number-pad" class="pad" role="group" aria-label="Number pad">
+                <button class="key chalk" type="button" data-key="7">7</button>
+                <button class="key chalk" type="button" data-key="8">8</button>
+                <button class="key chalk" type="button" data-key="9">9</button>
+                <button class="key chalk" type="button" data-key="4">4</button>
+                <button class="key chalk" type="button" data-key="5">5</button>
+                <button class="key chalk" type="button" data-key="6">6</button>
+                <button class="key chalk" type="button" data-key="1">1</button>
+                <button class="key chalk" type="button" data-key="2">2</button>
+                <button class="key chalk" type="button" data-key="3">3</button>
+                <button class="key" type="button" data-key="Backspace" aria-label="Delete last digit">
+                    <svg viewBox="0 0 32 24" aria-hidden="true"><path d="M10 3 L29 3 L29 21 L10 21 L2 12 Z M15 8 L23 16 M23 8 L15 16"/></svg>
+                </button>
+                <button class="key chalk" type="button" data-key="0">0</button>
+                <button class="key chalk" type="button" data-key="-" aria-label="Toggle minus sign">±</button>
+                <button class="key key-submit" type="button" data-key="Enter">Check</button>
+            </div>
+            <button id="forfeit-button" class="link-button" type="button">Give up</button>
+        </div>
+    </section>
+
+    <!-- Result -->
+    <section id="result-area" class="screen result" aria-labelledby="result-message" hidden>
+        <h2 id="result-message" class="chalk result-title">You win</h2>
+        <p id="result-reason" class="muted result-reason" hidden></p>
+        <div class="final-scores">
+            <div class="final-score">
+                <span id="final-you-name" class="hud-label hud-name">You</span>
+                <span id="your-final-score" class="chalk final-number you-color">0</span>
+                <div id="your-final-tally" class="tally you" aria-hidden="true"></div>
+            </div>
+            <div class="final-score">
+                <span id="final-them-name" class="hud-label hud-name">Opponent</span>
+                <span id="opponent-final-score" class="chalk final-number them-color">0</span>
+                <div id="opponent-final-tally" class="tally them" aria-hidden="true"></div>
+            </div>
+        </div>
+        <section id="stats" class="stats" aria-label="Your answers" hidden>
+            <p id="stats-summary" class="stats-summary"></p>
+            <ol id="answer-strip" class="answer-strip" aria-hidden="true"></ol>
+            <details class="answer-details">
+                <summary>Show all your answers</summary>
+                <ol id="answer-list" class="answer-list"></ol>
+            </details>
+            <p id="opponent-summary" class="muted opponent-summary"></p>
+        </section>
+        <div class="result-actions">
+            <button id="rematch-button" class="btn btn-primary" type="button">Rematch</button>
+            <p id="rematch-status" class="muted rematch-status" role="status"></p>
+            <button id="new-game-button" class="btn btn-secondary" type="button">Find a new opponent</button>
+            <button id="menu-button" class="link-button" type="button">Back to the main menu</button>
+        </div>
+    </section>
+
+    <footer class="tray">
+        <a href="/impressum">Impressum</a>
+        <a href="/datenschutz">Datenschutz</a>
+        <button id="mute-button" class="mute-button" type="button" aria-pressed="false" aria-label="Sound off">
+            <svg class="icon-sound-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+            <svg class="icon-sound-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+        </button>
+    </footer>
+</main>
+
+<script type="module" src="/js/game-modular.js"></script>
+</body>
+</html>
